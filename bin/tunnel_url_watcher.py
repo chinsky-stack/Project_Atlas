@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-ATLAS CAPITAL — tunnel URL watcher (self-healing quick tunnel).
+ATLAS CAPITAL — tunnel URL watcher.
 
-The free Cloudflare quick tunnel URL changes whenever the tunnel restarts
-(e.g. after a Mac/Starlink reboot). This script reads the CURRENT URL from the
-tunnel log and compares it to the last-known URL stored in data/.tunnel_url.
+The portal now uses a PERMANENT named Cloudflare tunnel on
+portal.ilyatorchinsky.com, so the URL never changes on reboot and no
+"new link" ping is needed. This script:
 
-  * If the URL is new/changed -> prints a Telegram-ready message with the new
-    portal link (so Dr. King can re-share it with friends).
-  * If unchanged -> prints "OK: tunnel url stable".
+  * Reads the stable URL from ~/.cloudflared/config.yml (hostname field).
+  * Falls back to scanning logs/tunnel.log for a *.trycloudflare.com URL
+    (in case the temporary quick tunnel is ever used).
+  * Prints the current portal URL on first run, then stays silent ("OK: ...")
+    on every subsequent run — the permanent URL does not change.
 
-Run on a schedule (Hermes cron, every ~10 min). The cron stays silent on "OK".
+Run on a schedule (Hermes cron). The cron stays silent on "OK".
 """
 import sys
 import re
@@ -20,24 +22,37 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LOG = ROOT / "logs" / "tunnel.log"
 STATE = ROOT / "data" / ".tunnel_url"
+NAMED_CFG = Path.home() / ".cloudflared" / "config.yml"
 URL_RE = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
 
 
+def _read_named_hostname():
+    if not NAMED_CFG.exists():
+        return None
+    text = NAMED_CFG.read_text(errors="ignore")
+    m = re.search(r"hostname:\s*([^\s]+)", text)
+    if m:
+        return "https://" + m.group(1).strip()
+    return None
+
+
 def current_url():
-    if not LOG.exists():
-        return None
-    text = LOG.read_text(errors="ignore")
-    matches = URL_RE.findall(text)
-    if not matches:
-        return None
-    # last occurrence is the most recent tunnel's URL
-    return matches[-1]
+    # Permanent named tunnel wins (stable URL)
+    named = _read_named_hostname()
+    if named:
+        return named
+    # Fallback: scan the tunnel log for a quick-tunnel URL
+    if LOG.exists():
+        matches = URL_RE.findall(LOG.read_text(errors="ignore"))
+        if matches:
+            return matches[-1]
+    return None
 
 
 def main():
     url = current_url()
     if not url:
-        print("OK: tunnel url stable")  # no URL seen yet; don't nag
+        print("OK: tunnel url not yet available")
         return
 
     prev = ""
@@ -51,22 +66,21 @@ def main():
         print("OK: tunnel url stable")
         return
 
-    # changed (or first run) -> persist + report
     STATE.parent.mkdir(parents=True, exist_ok=True)
     json.dump({"url": url}, open(STATE, "w"))
 
     if prev:
+        # Should essentially never happen now (permanent URL)
         print(
             "⚡ ATLAS CAPITAL — portal URL changed\n"
-            f"The secure link was regenerated (likely after a restart):\n"
-            f"{url}\n"
-            "Re-share this with your members. They sign in with their approved account."
+            f"The secure link was regenerated:\n{url}\n"
+            "Re-share this with your members."
         )
     else:
         print(
-            "⚡ ATLAS CAPITAL — portal is live\n"
+            "⚡ ATLAS CAPITAL — portal is live (permanent URL)\n"
             f"Secure member link:\n{url}\n"
-            "Share this with approved friends."
+            "This URL is stable and survives restarts. Share with approved friends."
         )
 
 
