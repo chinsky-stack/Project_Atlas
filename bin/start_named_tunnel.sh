@@ -6,13 +6,13 @@
 set -u
 CF_BIN="/Users/it/.local/bin/cloudflared"
 [ -x "$CF_BIN" ] || CF_BIN="/Users/it/Project_Atlas/bin/cloudflared"
-CFG="/Users/it/Project_Atlas/.cloudflared/config.yml"
+CFG="$HOME/.cloudflared/config.yml"
 
 if [ -f "$CFG" ]; then
-  echo "Starting STABLE named tunnel (atlas-portal)..."
+  echo "Starting STABLE named tunnel ($(grep -oE 'hostname: [^ ]+' "$CFG" | head -1 | awk '{print $2}'))..."
   exec "$CF_BIN" tunnel run atlas-portal
 else
   echo "Named tunnel not configured yet — using a temporary quick tunnel."
-  echo "Run bin/setup_tunnel.sh once (after creating a free Cloudflare account) for a permanent URL."
+  echo "Run: bash bin/setup_tunnel.sh  (after the domain's DNS is on Cloudflare)"
   exec "$CF_BIN" tunnel --url http://localhost:8501 --no-autoupdate
 fi
