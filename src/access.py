@@ -177,6 +177,26 @@ class AccessStore:
         with self._lock:
             return list(reversed(self.data.get("login_events", [])[-limit:]))
 
+    # ---------------- admin password reset ----------------
+    def reset_password(self, username: str, new_password: str) -> bool:
+        """Admin-initiated password reset (e.g. friend forgot theirs).
+        Works for approved members and pending requests alike."""
+        username = username.strip().lower()
+        if not new_password or len(new_password) < 4:
+            raise ValueError("New password must be at least 4 characters.")
+        with self._lock:
+            if username in self.data["members"]:
+                self.data["members"][username]["pw_hash"] = _hash(new_password)
+                self._save()
+                return True
+            # also cover pending requests (so they can set a new pw before approval)
+            for tok, req in self.data["pending_requests"].items():
+                if req["username"] == username:
+                    req["pw_hash"] = _hash(new_password)
+                    self._save()
+                    return True
+            return False
+
     def is_approved(self, username: str) -> bool:
         with self._lock:
             m = self.data["members"].get(username)

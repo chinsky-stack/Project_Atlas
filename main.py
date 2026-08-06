@@ -149,6 +149,7 @@ if not st.session_state.atlas_user:
                 st.rerun()
             else:
                 st.error("Invalid credentials or account not yet approved.")
+        st.caption("Forgot your password? Message the administrator — access is invitation-only and passwords are reset manually.")
 
     with tab_request:
         with st.form("request_form"):

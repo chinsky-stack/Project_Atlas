@@ -9,6 +9,7 @@ and member comments. Invoked from Telegram replies, e.g.:
   python3 bin/atlas_mod.py deny   req <TOKEN>
   python3 bin/atlas_mod.py approve comment <ID>
   python3 bin/atlas_mod.py deny   comment <ID>
+  python3 bin/atlas_mod.py reset  pw <USER> <NEWPASSWORD>
   python3 bin/atlas_mod.py list
 
 All changes persist to data/access.json. No network calls.
@@ -38,15 +39,28 @@ def main():
         print(" ", store.approved_members())
         return
 
-    action = args[0].lower()  # approve | deny
-    if action not in ("approve", "deny"):
+    action = args[0].lower()  # approve | deny | reset
+    if action not in ("approve", "deny", "reset"):
         print("usage: atlas_mod.py [approve|deny] [req <token> | comment <id>]")
+        print("       atlas_mod.py reset pw <USER> <NEWPASSWORD>")
         sys.exit(2)
 
     kind = args[1].lower() if len(args) > 1 else ""
     target = args[2] if len(args) > 2 else ""
 
     store = AccessStore()
+    if action == "reset":
+        if kind != "pw" or not target or len(args) < 4:
+            print("usage: atlas_mod.py reset pw <USER> <NEWPASSWORD>")
+            sys.exit(2)
+        new_pw = args[3]
+        try:
+            ok = store.reset_password(target, new_pw)
+            print("PASSWORD RESET" if ok else "FAILED (user not found)")
+        except ValueError as e:
+            print("FAILED:", e)
+        return
+
     if kind == "req":
         if action == "approve":
             ok = store.approve_request(target)
