@@ -145,26 +145,27 @@ class AccessStore:
             return False
 
     # ---------------- login ----------------
-    def authenticate(self, username: str, password: str) -> Optional[dict]:
+    def authenticate(self, username: str, password: str, ip: str = "") -> Optional[dict]:
         username = username.strip().lower()
         with self._lock:
             m = self.data["members"].get(username)
             if not m or not m.get("approved"):
                 reason = "unknown_user" if username not in self.data["members"] else "not_approved"
-                self._record_login(username, ok=False, reason=reason)
+                self._record_login(username, ok=False, reason=reason, ip=ip)
                 return None
             if check_password(password, m["pw_hash"]):
-                self._record_login(username, ok=True, reason="success")
+                self._record_login(username, ok=True, reason="success", ip=ip)
                 return m
-            self._record_login(username, ok=False, reason="bad_password")
+            self._record_login(username, ok=False, reason="bad_password", ip=ip)
             return None
 
-    def _record_login(self, username: str, ok: bool, reason: str):
+    def _record_login(self, username: str, ok: bool, reason: str, ip: str = ""):
         with self._lock:
             self.data.setdefault("login_events", []).append({
                 "username": username,
                 "ok": ok,
                 "reason": reason,
+                "ip": ip or "unknown",
                 "at": _now(),
             })
             # keep last 200 events

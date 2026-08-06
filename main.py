@@ -137,7 +137,13 @@ if not st.session_state.atlas_user:
             p = st.text_input("Password", type="password")
             submit = st.form_submit_button("Sign In")
         if submit:
-            m = access.authenticate(u, p)
+            try:
+                ip = str(st.context.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+                         or st.context.headers.get("X-Real-IP", "")
+                         or st.context.client.request.remote_addr or "unknown")
+            except Exception:
+                ip = "unknown"
+            m = access.authenticate(u, p, ip=ip)
             if m:
                 st.session_state.atlas_user = u.lower()
                 st.rerun()
