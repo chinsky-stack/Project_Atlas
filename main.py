@@ -26,6 +26,8 @@ from strategy_lab import StrategyLab
 from market_data import MarketData
 from paper_trader import PaperTrader
 from broker import get_broker
+from access import AccessStore
+from branding import COMPANY, COLORS, LOGIN_CSS
 
 # -------------------------------------------------
 # Load config
@@ -82,30 +84,92 @@ SOURCE_LABEL = md.source_name
 # Page setup
 # -------------------------------------------------
 st.set_page_config(
-    page_title=config["dashboard"]["title"],
+    page_title=f"{COMPANY['name']} — {COMPANY['portal']}",
     page_icon="⚡",
     layout="wide",
 )
 
-# ------------------------------------------------------------------
-# Passphrase gate (so a shared tunnel URL isn't wide open)
-# Set ATLAS_PASSWORD env to override; default below.
-# ------------------------------------------------------------------
-import os
-_ATLAS_PW = os.getenv("ATLAS_PASSWORD", "atlas2026")
-if "atlas_authed" not in st.session_state:
-    st.session_state.atlas_authed = False
-if not st.session_state.atlas_authed:
-    st.title("⚡ Project Atlas — Mission Control")
-    pw = st.text_input("Passphrase to enter Atlas", type="password",
-                       help="Default passphrase is 'atlas2026'. Set ATLAS_PASSWORD to change.")
-    if st.button("Enter"):
-        if pw == _ATLAS_PW:
-            st.session_state.atlas_authed = True
-            st.rerun()
-        else:
-            st.error("Wrong passphrase.")
+# Apply brand styling
+st.markdown(LOGIN_CSS, unsafe_allow_html=True)
+
+# -------------------------------------------------
+# Access control (per-user, approval-gated, moderated comments)
+# -------------------------------------------------
+ACCESS_CFG = config.get("access", {})
+MAX_MEMBERS = int(ACCESS_CFG.get("max_members", 6))
+access = AccessStore(max_members=MAX_MEMBERS)
+
+
+def atlas_brand_header(subtitle: str = ""):
+    st.markdown(
+        f"""
+        <div class="atlas-brand">
+          <div class="atlas-logo">⚡</div>
+          <div>
+            <div class="atlas-name">{COMPANY['name']}</div>
+            <div class="atlas-sub">{COMPANY['portal']}{(' · ' + subtitle) if subtitle else ''}</div>
+          </div>
+        </div>
+        <div class="atlas-divider"></div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# Initialise session auth state
+for k in ("atlas_user", "atlas_auth_pending"):
+    if k not in st.session_state:
+        st.session_state[k] = "" if k == "atlas_user" else False
+
+# ---------------- Not authenticated: branded gate ----------------
+if not st.session_state.atlas_user:
+    atlas_brand_header("Secure Access")
+    st.markdown(
+        f"<div class='atlas-muted' style='margin-bottom:10px'>{COMPANY['contact']}</div>",
+        unsafe_allow_html=True,
+    )
+
+    tab_login, tab_request = st.tabs(["Member Sign-In", "Request Access"])
+
+    with tab_login:
+        with st.form("login_form"):
+            u = st.text_input("Username")
+            p = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Sign In")
+        if submit:
+            m = access.authenticate(u, p)
+            if m:
+                st.session_state.atlas_user = u.lower()
+                st.rerun()
+            else:
+                st.error("Invalid credentials or account not yet approved.")
+
+    with tab_request:
+        with st.form("request_form"):
+            ru = st.text_input("Choose a username")
+            rp = st.text_input("Create a password", type="password")
+            remail = st.text_input("Email (optional)")
+            rnote = st.text_area("Why do you want access? (optional)")
+            rsubmit = st.form_submit_button("Submit Request")
+        if rsubmit:
+            if not ru or not rp:
+                st.error("Username and password are required.")
+            else:
+                try:
+                    access.request_access(ru, rp, remail, rnote)
+                    st.success(
+                        "Request submitted. The administrator will review and approve "
+                        "here on Telegram. You'll be notified once enabled."
+                    )
+                except ValueError as e:
+                    st.error(str(e))
+
+    st.markdown(
+        f"<div class='atlas-disclaimer'>{COMPANY['disclaimer']}</div>",
+        unsafe_allow_html=True,
+    )
     st.stop()
+
 
 # Prominent SIMULATED banner
 _mode_label = broker.label
@@ -121,8 +185,19 @@ if _banner_color == "error":
 else:
     st.warning(_msg)
 
-st.title("⚡ Project Atlas — Mission Control")
-st.caption("Soros-style high-conviction system | Paper trading only")
+atlas_brand_header("Mission Control")
+# signed-in chip + logout
+scol1, scol2 = st.columns([6, 1])
+with scol1:
+    st.markdown(
+        f"<span style='color:{COLORS['muted']};font-size:13px'>Signed in as "
+        f"<b style='color:{COLORS['accent']}'>{st.session_state.atlas_user}</b></span>",
+        unsafe_allow_html=True,
+    )
+with scol2:
+    if st.button("Sign Out", key="logout"):
+        st.session_state.atlas_user = ""
+        st.rerun()
 
 # -------------------------------------------------
 # Sidebar — Account & Risk Snapshot
@@ -135,6 +210,7 @@ with st.sidebar:
     st.metric("Unrealized P&L", f"${m['unrealized']:,.2f}")
     st.metric("Mode", _mode_label)
     st.caption(f"Prices: {SOURCE_LABEL}")
+    st.caption(f"Member: {st.session_state.atlas_user}")
 
     st.header("Risk Rules (Soros-adapted)")
     risk = config["risk"]
@@ -157,13 +233,14 @@ with st.sidebar:
 # -------------------------------------------------
 # Tabs
 # -------------------------------------------------
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Mission Control",
     "New Idea",
     "Risk Office",
     "Trade Journal",
     "Markets",
     "System Status",
+    "Member Comments",
 ])
 
 # ---- TAB 1: Mission Control ----
@@ -375,5 +452,41 @@ with tab6:
     st.info(f"Market data source: {SOURCE_LABEL}")
     st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+# ---- TAB 7: Member Comments (moderated) ----
+with tab7:
+    st.subheader("Member Comments")
+    st.caption("Submitted comments are reviewed by the administrator before they appear. "
+               "This keeps the portal clean and intentional.")
+    with st.form("comment_form"):
+        ctext = st.text_area("Share a comment or feedback", height=100)
+        csubmit = st.form_submit_button("Submit Comment")
+    if csubmit:
+        try:
+            access.add_comment(st.session_state.atlas_user, ctext)
+            st.success("Comment submitted. It will appear once the administrator approves it.")
+            st.rerun()
+        except ValueError as e:
+            st.error(str(e))
+
+    st.divider()
+    st.markdown(f"<div class='atlas-sub' style='font-size:11px'>Approved comments</div>", unsafe_allow_html=True)
+    vis = access.visible_comments()
+    if vis:
+        for c in vis:
+            st.markdown(
+                f"<div class='atlas-card' style='margin-bottom:10px'>"
+                f"<div style='color:{COLORS['accent']};font-weight:700'>{c['user']}</div>"
+                f"<div style='color:{COLORS['text']}'>{c['text']}</div>"
+                f"<div class='atlas-muted'>{c['created']}</div></div>",
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("No approved comments yet.")
+
 st.divider()
-st.caption("Project Atlas v0.3 | Built for Dr. King | SIMULATED — paper trading only")
+st.markdown(
+    f"<div class='atlas-disclaimer'>{COMPANY['disclaimer']}</div>",
+    unsafe_allow_html=True,
+)
+st.caption(f"{COMPANY['name']} · v0.4 · Member portal · SIMULATED — paper trading only")
+

@@ -61,16 +61,32 @@ live book — good for watching together and reviewing trades.
 
 ---
 
-## Friend feedback / review
+## Friend access (invitation-only, you approve)
 
-Friends can file bugs, suggestions, and questions as GitHub issues — the
-assistant triages and implements them.
+Atlas is now a branded member portal — **ATLAS CAPITAL — Member Research Portal**.
+Friends do NOT get a shared passphrase. Instead:
 
-- Repo: https://github.com/chinsky-stack/Project_Atlas
-- Click **Issues → New issue → Atlas Feedback**
-- Pick a type (bug / suggestion / usability / risk-rule concern) and how
-  important it is. Paste screenshots directly into the box.
-- The assistant reviews new issues and implements safe, agreed changes.
+1. They open the remote URL and click **Request Access**, choosing a username
+   + password and (optionally) why they want in.
+2. You get a **Telegram message** (every 5 min the access-watcher checks) with
+   their request and the exact approve/deny command.
+3. You reply **approve** / **deny** here, and the assistant runs it. Only then
+   can they sign in.
+4. A cap (`access.max_members` in `config.yaml`, default 6) limits how many
+   friends can be approved at once.
+5. Member **comments** are submitted in the "Member Comments" tab but are
+   **hidden until you approve them** here on Telegram (moderated).
+
+This keeps it a small, intentional, legitimate-looking circle — no open door.
+
+Commands the assistant runs for you (you just say yes/no):
+```
+python3 /Users/it/Project_Atlas/bin/atlas_mod.py approve  req     <TOKEN>
+python3 /Users/it/Project_Atlas/bin/atlas_mod.py deny    req     <TOKEN>
+python3 /Users/it/Project_Atlas/bin/atlas_mod.py approve  comment <ID>
+python3 /Users/it/Project_Atlas/bin/atlas_mod.py deny    comment <ID>
+python3 /Users/it/Project_Atlas/bin/atlas_mod.py list
+```
 
 ---
 

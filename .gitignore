@@ -17,3 +17,7 @@ logs/*.log
 # Secrets — NEVER commit real broker keys
 config.local.yaml
 *.secret
+
+# access control runtime state
+data/access.json
+data/.lastseen.json

@@ -47,3 +47,10 @@ pipeline:
 dashboard:
   title: "Project Atlas — Mission Control"
   port: 8501
+
+# ACCESS CONTROL (per-user, approval-gated member portal)
+# Friends can ONLY log in after the administrator approves them here on Telegram.
+# max_members caps how many approved friends can exist at once.
+access:
+  max_members: 6
+  admin_telegram_id: "8660692768"
