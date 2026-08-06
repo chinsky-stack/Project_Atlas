@@ -27,3 +27,6 @@ config.local.yaml
 
 # cloudflared named-tunnel creds (gitignored)
 .cloudflared/
+
+# tunnel url state (gitignored)
+data/.tunnel_url
