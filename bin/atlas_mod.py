@@ -30,7 +30,7 @@ def main():
         store = AccessStore()
         print("== Pending access requests ==")
         for r in store.pending_request_list():
-            print(f"  req  {r['token'][:12]}  user={r['username']}  note={r.get('note','')}")
+            print(f"  req  {r['token']}  user={r['username']}  note={r.get('note','')}")
         print("== Pending comments ==")
         for c in store.pending_comments():
             print(f"  comment {c['id']}  user={c['user']}  text={c['text'][:80]}")
