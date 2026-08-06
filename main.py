@@ -38,7 +38,25 @@ CONFIG_PATH = Path(__file__).parent / "config.yaml"
 @st.cache_data
 def load_config():
     with open(CONFIG_PATH, "r") as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+    # Merge local overrides (gitignored, holds real broker keys). Local wins.
+    local = CONFIG_PATH.parent / "config.local.yaml"
+    if local.exists():
+        try:
+            with open(local) as lf:
+                loc = yaml.safe_load(lf) or {}
+            _deep_merge(cfg, loc)
+        except Exception:
+            pass
+    return cfg
+
+
+def _deep_merge(base: dict, override: dict):
+    for k, v in override.items():
+        if isinstance(v, dict) and isinstance(base.get(k), dict):
+            _deep_merge(base[k], v)
+        else:
+            base[k] = v
 
 
 config = load_config()

@@ -2,3 +2,10 @@
 gmail_address: "yourname@gmail.com"
 gmail_app_password: "abcd efgh ijkl mnop"   # 16-char Gmail App Password
 to_self: "yourname@gmail.com"               # the "To" recipient (you)
+
+# Broker keys (paper-first). Paste your Alpaca PAPER keys here.
+broker:
+  mode: paper
+  api_key: "YOUR_ALPACA_PAPER_KEY"
+  api_secret: "YOUR_ALPACA_PAPER_SECRET"
+  live_confirmed: false

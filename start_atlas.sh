@@ -38,11 +38,18 @@ run_streamlit() {
 }
 
 # ---- Cloudflare tunnel (auto-restart loop) ----
+# Prefer the STABLE named tunnel if it has been set up (bin/setup_tunnel.sh);
+# otherwise fall back to a temporary quick tunnel whose URL changes on reboot.
+NAMED_CFG="$ATLAS_DIR/.cloudflared/config.yml"
 run_tunnel() {
   while true; do
-    echo "[$(date)] starting cloudflared tunnel"
-    "$CF_BIN" tunnel --url "http://localhost:$PORT" --no-autoupdate \
-      >> "$LOG_DIR/tunnel.log" 2>&1
+    if [ -f "$NAMED_CFG" ]; then
+      echo "[$(date)] starting STABLE named tunnel (atlas-portal)"
+      "$CF_BIN" tunnel run atlas-portal >> "$LOG_DIR/tunnel.log" 2>&1
+    else
+      echo "[$(date)] starting temporary quick tunnel (run bin/setup_tunnel.sh for a permanent URL)"
+      "$CF_BIN" tunnel --url "http://localhost:$PORT" --no-autoupdate >> "$LOG_DIR/tunnel.log" 2>&1
+    fi
     echo "[$(date)] tunnel exited ($?), restarting in 3s"
     sleep 3
   done

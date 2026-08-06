@@ -24,3 +24,6 @@ data/.lastseen.json
 
 # local secrets (NEVER commit)
 config.local.yaml
+
+# cloudflared named-tunnel creds (gitignored)
+.cloudflared/
