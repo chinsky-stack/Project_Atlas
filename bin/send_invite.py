@@ -21,9 +21,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "bin"))
 from invite_messages import SUBJECT, EMAIL_BODY, PORTAL_URL  # noqa: E402
 
-# Recipients
-TO_SELF = os.getenv("ATLAS_TO_SELF", "")          # your own address (set below)
-BCC = ["alaskamatt@gmail.com", "pennmou@gmail.com"]
+# Recipients (override via env if needed)
+TO_SELF = os.getenv("ATLAS_TO_SELF", "itorchinsky@alaska.edu")
+CC = os.getenv("ATLAS_CC", "ilyatorchinsky@gmail.com").split(",") if os.getenv("ATLAS_CC") else ["ilyatorchinsky@gmail.com"]
+BCC = os.getenv("ATLAS_BCC", "pennmou@gmail.com").split(",") if os.getenv("ATLAS_BCC") else ["pennmou@gmail.com"]
 
 
 def load_creds():
@@ -57,6 +58,7 @@ def main():
     msg["Subject"] = SUBJECT
     msg["From"] = f"Dr. King (ATLAS CAPITAL) <{addr}>"
     msg["To"] = TO_SELF
+    msg["Cc"] = ", ".join(CC)
     msg["Bcc"] = ", ".join(BCC)
     msg.set_content(EMAIL_BODY)
 
@@ -65,7 +67,7 @@ def main():
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as s:
         s.login(addr, pw)
         s.send_message(msg)
-    print(f"Sent invitation: To={TO_SELF}  Bcc={BCC}")
+    print(f"Sent invitation: To={TO_SELF}  Cc={CC}  Bcc={BCC}")
 
 
 if __name__ == "__main__":
