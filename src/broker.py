@@ -261,15 +261,33 @@ class AlpacaBroker:
                 )
                 order = self.trading.submit_order(req)
 
-                # Place a real broker STOP so the exchange enforces the cut
-                stop_id = self._place_stop(ticker, direction, qty_to_use, stop)
+                # Honest status: ACCEPTED/pending_new means the order is queued
+                # (e.g. after market hours) and has NOT filled yet. Only report a
+                # confirmed fill when the order is actually filled/partially filled.
+                ostatus = str(getattr(order, "status", "")).lower()
+                filled = ("filled" in ostatus) or ("partial" in ostatus)
+                pending = ostatus in ("accepted", "pending_new", "new", "accepted_for_bidding")
 
-                return OrderResult(True,
-                    f"{self.mode.upper()} {direction} {qty_to_use} {ticker} @ mkt (~{entry:.2f}); "
-                    f"stop {stop:.2f} placed at broker" +
-                    (f" (stop_id {stop_id})" if stop_id else ""),
-                    {"ticker": ticker, "direction": direction, "qty": qty_to_use,
-                     "entry": entry, "stop": stop, "conviction": conviction})
+                # Place a real broker STOP so the exchange enforces the cut
+                # (only meaningful once the parent is filled; if pending, skip
+                #  for now — the UI/review loop will place it after fill).
+                stop_id = None
+                if filled:
+                    stop_id = self._place_stop(ticker, direction, qty_to_use, stop)
+
+                if filled:
+                    return OrderResult(True,
+                        f"{self.mode.upper()} {direction} {qty_to_use} {ticker} @ mkt (~{entry:.2f}); "
+                        f"stop {stop:.2f} placed at broker" +
+                        (f" (stop_id {stop_id})" if stop_id else ""),
+                        {"ticker": ticker, "direction": direction, "qty": qty_to_use,
+                         "entry": entry, "stop": stop, "conviction": conviction})
+                else:
+                    return OrderResult(True,
+                        f"{self.mode.upper()} {direction} {qty_to_use} {ticker} SUBMITTED (status: {ostatus}); "
+                        f"will fill at next market open. Stop {stop:.2f} will be placed after fill.",
+                        {"ticker": ticker, "direction": direction, "qty": qty_to_use,
+                         "entry": entry, "stop": stop, "conviction": conviction, "pending": True})
             except Exception as e:
                 return OrderResult(False, f"Alpaca submit failed: {e}")
 

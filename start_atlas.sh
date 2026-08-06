@@ -16,6 +16,14 @@ mkdir -p "$LOG_DIR"
 
 cd "$ATLAS_DIR" || { echo "ERROR: $ATLAS_DIR not found"; exit 1; }
 
+# Force the permanent venv: call its streamlit/cloudflared directly (no `source`
+# reliance, which can inherit a stale VIRTUAL_ENV from the parent shell).
+VENV_PY="$ATLAS_DIR/.venv/bin/python"
+STREAMLIT="$ATLAS_DIR/.venv/bin/streamlit"
+if [ ! -x "$STREAMLIT" ]; then
+  STREAMLIT="$(command -v streamlit)"
+fi
+
 # Passphrase for the shared URL (override with: ATLAS_PASSWORD=xxx bash start_atlas.sh)
 export ATLAS_PASSWORD="${ATLAS_PASSWORD:-atlas2026}"
 
@@ -29,8 +37,7 @@ echo "=============================================="
 run_streamlit() {
   while true; do
     echo "[$(date)] starting streamlit"
-    source "$VENV"
-    streamlit run main.py --server.headless true --server.port $PORT \
+    "$STREAMLIT" run main.py --server.headless true --server.port $PORT \
       >> "$LOG_DIR/streamlit.log" 2>&1
     echo "[$(date)] streamlit exited ($?), restarting in 3s"
     sleep 3

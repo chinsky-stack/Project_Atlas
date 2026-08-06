@@ -30,3 +30,7 @@ config.local.yaml
 
 # tunnel url state (gitignored)
 data/.tunnel_url
+
+# alpaca mcp (gitignored)
+.env.alpaca_mcp
+.alpaca_mcp/
