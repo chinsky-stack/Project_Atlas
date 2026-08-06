@@ -105,6 +105,9 @@ st.set_page_config(
     page_title=f"{COMPANY['name']} — {COMPANY['portal']}",
     page_icon="⚡",
     layout="wide",
+    # Hide Streamlit's hamburger menu + "Made with Streamlit" footer so the
+    # branded ATLAS header owns the top bar (no Light/Dark/Print leak).
+    menu_items={},
 )
 
 # Apply brand styling
