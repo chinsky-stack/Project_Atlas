@@ -47,10 +47,10 @@ html, body, .stApp {{
 
 /* Brand header */
 .atlas-brand {{
-    display:flex; align-items:center; gap:14px; margin-bottom:6px;
+    display:flex; align-items:center; gap:14px; margin:18px 0 6px;
 }}
 .atlas-logo {{
-    width:46px;height:46px;border-radius:10px;
+    width:46px;height:46px;border-radius:10px; flex:0 0 46px;
     background: linear-gradient(135deg, {COLORS['accent']}, #b8860b);
     display:flex;align-items:center;justify-content:center;
     font-weight:800;font-size:22px;color:#0b0f17;box-shadow:0 4px 14px rgba(212,175,55,.25);

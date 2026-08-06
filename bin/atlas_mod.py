@@ -10,6 +10,7 @@ and member comments. Invoked from Telegram replies, e.g.:
   python3 bin/atlas_mod.py approve comment <ID>
   python3 bin/atlas_mod.py deny   comment <ID>
   python3 bin/atlas_mod.py reset  pw <USER> <NEWPASSWORD>
+  python3 bin/atlas_mod.py add    member <USER> <EMAIL> <PASSWORD>
   python3 bin/atlas_mod.py list
 
 All changes persist to data/access.json. No network calls.
@@ -39,16 +40,28 @@ def main():
         print(" ", store.approved_members())
         return
 
-    action = args[0].lower()  # approve | deny | reset
-    if action not in ("approve", "deny", "reset"):
+    action = args[0].lower()  # approve | deny | reset | add
+    if action not in ("approve", "deny", "reset", "add"):
         print("usage: atlas_mod.py [approve|deny] [req <token> | comment <id>]")
         print("       atlas_mod.py reset pw <USER> <NEWPASSWORD>")
+        print("       atlas_mod.py add member <USER> <EMAIL> <PASSWORD>")
         sys.exit(2)
 
     kind = args[1].lower() if len(args) > 1 else ""
     target = args[2] if len(args) > 2 else ""
 
     store = AccessStore()
+    if action == "add":
+        if kind != "member" or not target or len(args) < 5:
+            print("usage: atlas_mod.py add member <USER> <EMAIL> <PASSWORD>")
+            sys.exit(2)
+        email = args[3]
+        new_pw = args[4]
+        ok = store.add_member(target, email, new_pw)
+        print("MEMBER ADDED" if ok else
+              "FAILED (username exists, cap reached, or bad input)")
+        return
+
     if action == "reset":
         if kind != "pw" or not target or len(args) < 4:
             print("usage: atlas_mod.py reset pw <USER> <NEWPASSWORD>")

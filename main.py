@@ -173,24 +173,32 @@ if not st.session_state.atlas_user:
         st.caption("Forgot your password? Message the administrator — access is invitation-only and passwords are reset manually.")
 
     with tab_request:
-        with st.form("request_form"):
-            ru = st.text_input("Choose a username")
-            rp = st.text_input("Create a password", type="password")
-            remail = st.text_input("Email (optional)")
-            rnote = st.text_area("Why do you want access? (optional)")
-            rsubmit = st.form_submit_button("Submit Request")
-        if rsubmit:
-            if not ru or not rp:
-                st.error("Username and password are required.")
-            else:
-                try:
-                    access.request_access(ru, rp, remail, rnote)
-                    st.success(
-                        "Request submitted. The administrator will review and approve "
-                        "here on Telegram. You'll be notified once enabled."
-                    )
-                except ValueError as e:
-                    st.error(str(e))
+        # After a successful submit we swap the form for a clean confirmation
+        # (and the form fields clear on the next render).
+        if st.session_state.get("request_submitted"):
+            st.success(
+                "Request submitted — you'll hear back from the administrator."
+            )
+            if st.button("Submit another request"):
+                st.session_state.request_submitted = False
+                st.rerun()
+        else:
+            with st.form("request_form"):
+                ru = st.text_input("Choose a username")
+                rp = st.text_input("Create a password", type="password")
+                remail = st.text_input("Email (optional)")
+                rnote = st.text_area("Why do you want access? (optional)")
+                rsubmit = st.form_submit_button("Submit Request")
+            if rsubmit:
+                if not ru or not rp:
+                    st.error("Username and password are required.")
+                else:
+                    try:
+                        access.request_access(ru, rp, remail, rnote)
+                        st.session_state.request_submitted = True
+                        st.rerun()
+                    except ValueError as e:
+                        st.error(str(e))
 
     st.markdown(
         f"<div class='atlas-disclaimer'>{COMPANY['disclaimer']}</div>",

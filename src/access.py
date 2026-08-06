@@ -144,6 +144,32 @@ class AccessStore:
                 return True
             return False
 
+    def add_member(self, username: str, email: str, password: str) -> bool:
+        """Admin pre-provisioning of an account the owner has verbally approved
+        (e.g. friend invited + yes/no given). Mirrors the member shape created
+        by approve_request. Respects the max_members cap. Returns False if the
+        username already exists or the cap is reached."""
+        username = username.strip().lower()
+        if not username or not password:
+            return False
+        with self._lock:
+            if username in self.data["members"]:
+                return False
+            approved_count = sum(1 for m in self.data["members"].values() if m.get("approved"))
+            if approved_count >= self.max_members:
+                return False
+            self.data["members"][username] = {
+                "pw_hash": _hash(password),
+                "approved": True,
+                "role": "member",
+                "email": email or "",
+                "note": "pre-provisioned by admin",
+                "created": _now(),
+                "approved_at": _now(),
+            }
+            self._save()
+            return True
+
     # ---------------- login ----------------
     def authenticate(self, username: str, password: str, ip: str = "") -> Optional[dict]:
         username = username.strip().lower()
