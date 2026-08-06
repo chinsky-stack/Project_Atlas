@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Atlas runtime data (keep structure, ignore state)
+data/portfolio.json
+data/journal.json
+data/ideas.json
+data/broker_state.json
+
+# Logs
+logs/*.log
+*.log
+
+# Secrets — NEVER commit real broker keys
+config.local.yaml
+*.secret

@@ -1,0 +1,15 @@
+#!/bin/bash
+echo "=========================================="
+echo "  Project Atlas — One-Command Setup"
+echo "=========================================="
+echo ""
+echo "Installing required packages..."
+pip install -r requirements.txt
+echo ""
+echo "Setup complete."
+echo ""
+echo "To start the system, run:"
+echo "    streamlit run main.py"
+echo ""
+echo "A browser window will open with Mission Control."
+echo "=========================================="

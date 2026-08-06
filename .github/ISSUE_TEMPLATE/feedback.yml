@@ -1,0 +1,42 @@
+name: Atlas Feedback
+description: Report a bug, suggest an improvement, or give feedback on Project Atlas
+title: "[feedback] <short summary>"
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type of feedback
+      options:
+        - Bug report
+        - Suggestion / improvement
+        - Question
+        - Usability / UI
+        - Risk-rule concern
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What did you see / want?
+      description: Describe the problem or idea clearly.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce (for bugs)
+      description: What did you click? What ticker/direction? What was expected?
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important?
+      options:
+        - Nice to have
+        - Should fix
+        - Must fix before live
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Screenshots (paste image), trading context, etc.

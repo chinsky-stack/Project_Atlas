@@ -1,0 +1,49 @@
+# PROJECT ATLAS CONFIG
+# Edit these numbers. Save. Restart the dashboard.
+
+account:
+  starting_capital: 1000.0
+  currency: USD
+  mode: paper          # paper only for now
+
+# SOROS-STYLE RISK RULES (aggressive learning account)
+risk:
+  max_risk_per_trade_pct: 8.0          # % of current equity
+  max_daily_loss_pct: 25.0             # stop for the day
+  max_weekly_loss_pct: 40.0
+  kill_switch_drawdown_pct: 50.0       # hard freeze + post-mortem required
+  max_position_pct: 45.0               # high concentration allowed
+  max_open_positions: 5
+  allow_shorts: true                   # enabled
+  allow_options: true                  # enabled
+  allow_margin: false                  # cash account only for now
+
+# BROKER CONNECTION (paper-first, safety-gated)
+# mode: simulate  -> in-process sim engine, no keys, no network (default)
+# mode: paper     -> Alpaca PAPER sandbox (real API, NO real money). Add keys below.
+# mode: live      -> Alpaca LIVE (REAL MONEY). Requires live_confirmed: true + keys.
+# Get paper keys free at https://app.alpaca.markets/ (developer-first, commission-free).
+broker:
+  mode: simulate
+  live_confirmed: false
+  api_key: "REPLACE_WITH_YOUR_ALPACA_KEY"
+  api_secret: "REPLACE_WITH_YOUR_ALPACA_SECRET"
+
+
+# STRATEGY STYLE
+strategy:
+  style: soros
+  require_high_conviction: true
+  cut_losers_immediately: true
+  no_averaging_down: true
+  min_reward_to_risk: 2.5
+
+# PIPELINE
+pipeline:
+  cheap_screen_first: true             # Claude review point #1
+  require_edge_source: true            # Claude review point #3
+
+# DASHBOARD
+dashboard:
+  title: "Project Atlas — Mission Control"
+  port: 8501
