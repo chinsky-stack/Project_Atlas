@@ -227,10 +227,41 @@ class AlpacaBroker:
         return out
 
     # ---- order entry with full local Risk Office enforcement ----
-    def submit_order(self, ticker, direction, conviction, stop, qty=None) -> OrderResult:
+    def _market_open(self, extended=False):
+        """Return True if US regular-equity market is open now (ET).
+        extended=True also allows pre/post market. Uses Alpaca's clock when
+        available; falls back to a local ET weekday 9:30-16:00 check."""
+        try:
+            clock = self.trading.get_clock()
+            if clock is not None:
+                return bool(clock.is_open)
+        except Exception:
+            pass
+        # Fallback: compute ET weekday 09:30-16:00
+        try:
+            import datetime
+            utc = datetime.datetime.now(datetime.timezone.utc)
+            et = utc - datetime.timedelta(hours=4)  # EDT (summer); -5 in winter
+            if et.weekday() >= 5:
+                return False
+            op, cl = (4, 20) if extended else (9, 30), (20, 0) if extended else (16, 0)
+            t = et.hour * 60 + et.minute
+            return (op[0]*60+op[1]) <= t <= (cl[0]*60+cl[1])
+        except Exception:
+            return False
+
+    def submit_order(self, ticker, direction, conviction, stop, qty=None, allow_after_hours=False) -> OrderResult:
         ticker = ticker.upper().strip()
         direction = direction.capitalize()
         with self._lock:
+            # Option (b): block order entry outside regular US equity hours so
+            # paper DAY orders don't silently queue until next open. Override
+            # with allow_after_hours=True only for deliberate extended-hours trades.
+            if not allow_after_hours and not self._market_open():
+                return OrderResult(False,
+                    "MARKET CLOSED — orders only submit during US regular hours "
+                    "(9:30 AM-4:00 PM ET). Re-open during market hours, or set "
+                    "allow_after_hours=True for extended-hours trading.")
             if self._killswitch:
                 return OrderResult(False, "KILL-SWITCH ARMED. Trading frozen. Reset required.")
             eq = self.equity()
