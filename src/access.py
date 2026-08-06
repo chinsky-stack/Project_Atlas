@@ -66,7 +66,7 @@ class AccessStore:
         self.path = path or (Path(__file__).parent.parent / "data" / "access.json")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.max_members = max_members
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.data = self._load()
 
     # ---------------- persistence ----------------
@@ -150,10 +150,31 @@ class AccessStore:
         with self._lock:
             m = self.data["members"].get(username)
             if not m or not m.get("approved"):
+                reason = "unknown_user" if username not in self.data["members"] else "not_approved"
+                self._record_login(username, ok=False, reason=reason)
                 return None
             if check_password(password, m["pw_hash"]):
+                self._record_login(username, ok=True, reason="success")
                 return m
+            self._record_login(username, ok=False, reason="bad_password")
             return None
+
+    def _record_login(self, username: str, ok: bool, reason: str):
+        with self._lock:
+            self.data.setdefault("login_events", []).append({
+                "username": username,
+                "ok": ok,
+                "reason": reason,
+                "at": _now(),
+            })
+            # keep last 200 events
+            if len(self.data["login_events"]) > 200:
+                self.data["login_events"] = self.data["login_events"][-200:]
+            self._save()
+
+    def recent_login_events(self, limit: int = 50) -> List[dict]:
+        with self._lock:
+            return list(reversed(self.data.get("login_events", [])[-limit:]))
 
     def is_approved(self, username: str) -> bool:
         with self._lock:

@@ -21,3 +21,6 @@ config.local.yaml
 # access control runtime state
 data/access.json
 data/.lastseen.json
+
+# local secrets (NEVER commit)
+config.local.yaml

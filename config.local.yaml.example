@@ -1,0 +1,4 @@
+# COPY THIS to config.local.yaml and fill in. config.local.yaml is gitignored.
+gmail_address: "yourname@gmail.com"
+gmail_app_password: "abcd efgh ijkl mnop"   # 16-char Gmail App Password
+to_self: "yourname@gmail.com"               # the "To" recipient (you)
