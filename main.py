@@ -240,7 +240,7 @@ with st.sidebar:
 # -------------------------------------------------
 # Tabs
 # -------------------------------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "Mission Control",
     "New Idea",
     "Risk Office",
@@ -248,6 +248,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Markets",
     "System Status",
     "Member Comments",
+    "Account",
 ])
 
 # ---- TAB 1: Mission Control ----
@@ -489,6 +490,42 @@ with tab7:
             )
     else:
         st.info("No approved comments yet.")
+
+# ---- TAB 8: Account (self-service password change) ----
+with tab8:
+    st.subheader("Account")
+    st.markdown(
+        f"<span style='color:{COLORS['muted']}'>Signed in as "
+        f"<b style='color:{COLORS['accent']}'>{st.session_state.atlas_user}</b></span>",
+        unsafe_allow_html=True,
+    )
+    st.divider()
+    st.write("Change your password")
+    with st.form("change_pw_form"):
+        cur = st.text_input("Current password", type="password")
+        new1 = st.text_input("New password", type="password")
+        new2 = st.text_input("Confirm new password", type="password")
+        cp_submit = st.form_submit_button("Update Password")
+    if cp_submit:
+        if not cur or not new1 or not new2:
+            st.error("All fields are required.")
+        elif new1 != new2:
+            st.error("New passwords do not match.")
+        elif len(new1) < 4:
+            st.error("New password must be at least 4 characters.")
+        elif not access.authenticate(st.session_state.atlas_user, cur):
+            st.error("Current password is incorrect.")
+        else:
+            try:
+                access.reset_password(st.session_state.atlas_user, new1)
+                st.success("Password updated. Use it next time you sign in.")
+            except ValueError as e:
+                st.error(str(e))
+
+    st.divider()
+    if st.button("Sign Out", key="logout2"):
+        st.session_state.atlas_user = ""
+        st.rerun()
 
 st.divider()
 st.markdown(
