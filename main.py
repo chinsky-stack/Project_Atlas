@@ -18,6 +18,10 @@ import json, os, secrets, string
 from pathlib import Path
 import sys
 
+# Portal version — bump on any user-visible change so cache staleness is obvious.
+# Tracked in CHANGELOG.md.
+VERSION = "0.5"
+
 # Add src to path
 sys.path.append(str(Path(__file__).parent / "src"))
 
@@ -281,6 +285,7 @@ _msg = (
     f"⚠️ **{_mode_label}** — "
     + ("REAL MONEY at risk. Every order passes the Risk Office gate." if _is_live
        else "No real money moves. Prices: **%s**. Fills are simulated; risk rules enforced in code." % SOURCE_LABEL)
+    + f"  ·  v{VERSION}"
 )
 if _banner_color == "error":
     st.error(_msg)
@@ -765,5 +770,5 @@ st.markdown(
     f"<div class='atlas-disclaimer'>{COMPANY['disclaimer']}</div>",
     unsafe_allow_html=True,
 )
-st.caption(f"{COMPANY['name']} · v0.4 · Member portal · SIMULATED — paper trading only")
+st.caption(f"{COMPANY['name']} · v{VERSION} · Member portal · SIMULATED — paper trading only")
 
