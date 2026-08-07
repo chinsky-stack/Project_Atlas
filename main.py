@@ -269,7 +269,7 @@ with st.sidebar:
 # -------------------------------------------------
 # Tabs
 # -------------------------------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "Mission Control",
     "New Idea",
     "Risk Office",
@@ -278,6 +278,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "System Status",
     "Member Comments",
     "Account",
+    "Auto Trader",
 ])
 
 # ---- TAB 1: Mission Control ----
@@ -555,6 +556,61 @@ with tab8:
     if st.button("Sign Out", key="logout2"):
         st.session_state.atlas_user = ""
         st.rerun()
+
+# ---- TAB 9: Auto Trader (Soros-adapted, aggressive but HARD-CAPPED, PAPER ONLY) ----
+with tab9:
+    st.subheader("Autonomous Trader")
+    st.warning("⚠️ PAPER ONLY. This engine trades the Alpaca PAPER sandbox — no real money. "
+               "Every order passes the Risk Office + kill-switch. Limits are set in config.yaml → auto_trader.")
+    at_cfg = cfg.get("auto_trader", {})
+    if not at_cfg.get("paper_only", True):
+        st.error("auto_trader.paper_only is false — engine refuses to run (safety).")
+    else:
+        # build/persist the engine in session state
+        if "at_engine" not in st.session_state:
+            st.session_state.at_engine = None
+        if st.session_state.at_engine is None:
+            try:
+                from auto_trader import AutoTrader
+                st.session_state.at_engine = AutoTrader(broker, cfg, market_price=broker.market_price)
+            except Exception as e:
+                st.error(f"Engine init failed: {e}")
+        eng = st.session_state.at_engine
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("▶ Start", key="at_start"):
+                if eng and eng.start():
+                    st.success("AutoTrader started (PAPER).")
+                else:
+                    st.error("Could not start (already running, kill-switch, or not paper_only).")
+                st.rerun()
+        with c2:
+            if st.button("■ Stop", key="at_stop"):
+                if eng:
+                    eng.stop()
+                st.info("Stopped.")
+                st.rerun()
+        with c3:
+            if st.button("↺ Reset Kill-Switch", key="at_reset"):
+                if eng:
+                    eng.reset_killswitch()
+                st.rerun()
+        if eng:
+            s = eng.status()
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Book", f"${s['book']:,.0f}")
+            m2.metric("Drawdown", f"{s['drawdown_pct']:.1f}%")
+            m3.metric("Positions", s["positions"])
+            m4.metric("Realized P&L", f"${s['realized_pnl']:,.0f}")
+            st.caption(f"Running: {s['running']} · Kill-switch: {s['killswitch']} · Daily loss: {s['daily_loss']:.1f}%")
+            st.divider()
+            st.write("**Last signals**")
+            for sig in s["last_signals"]:
+                st.caption(f"{sig['ticker']}: {sig['direction']} (conv {sig['conviction']}) — {sig['rationale']}")
+            st.divider()
+            st.write("**Engine log**")
+            for line in s["log"]:
+                st.caption(line)
 
 st.divider()
 st.markdown(

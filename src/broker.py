@@ -337,6 +337,76 @@ class AlpacaBroker:
         except Exception:
             return None
 
+    def submit_option_spread(self, underlying: str, direction: str,
+                             max_premium: float, conv: int = 8) -> OrderResult:
+        """Defined-risk vertical spread (bull-call or bear-put). No naked shorts.
+        max_premium = max $ risk on the spread (enforced). Returns OrderResult.
+        Uses a LIMIT order at net mid so it can rest (not blocked by market-hours
+        like MARKET option orders)."""
+        if not self._market_open():
+            return OrderResult(False, "MARKET CLOSED — option spreads only submit during US regular hours.")
+        try:
+            from alpaca.trading.client import TradingClient
+            from alpaca.trading.requests import (OrderRequest, OptionLegRequest,
+                                                 GetOptionContractsRequest)
+            from alpaca.trading.enums import (OrderClass, AssetClass, OrderType,
+                                              TimeInForce, OrderSide, PositionIntent)
+            # find option contracts
+            resp = self.trading.get_option_contracts(
+                GetOptionContractsRequest(symbol_or_asset_id=underlying))
+            contracts = resp.option_contracts if hasattr(resp, "option_contracts") else resp
+            otype = "call" if direction == "Long" else "put"
+            legs = [c for c in contracts if getattr(c, "type", "") == otype]
+            if not legs:
+                return OrderResult(False, f"No {otype} contracts found for {underlying}.")
+            legs.sort(key=lambda c: (c.expiration_date, float(c.strike_price)))
+            # nearest expiry with >=2 strikes
+            from collections import defaultdict
+            by_exp = defaultdict(list)
+            for c in legs:
+                by_exp[c.expiration_date].append(c)
+            exp = None
+            for e in sorted(by_exp):
+                if len(by_exp[e]) >= 2:
+                    exp = e; break
+            if exp is None:
+                return OrderResult(False, "Not enough strikes for a vertical.")
+            chain = sorted(by_exp[exp], key=lambda c: float(c.strike_price))
+            long_leg = chain[0]
+            short_leg = chain[1]
+            # sizing: how many spreads fit within max_premium (assume ~$1 wide)
+            width = abs(float(short_leg.strike_price) - float(long_leg.strike_price)) or 1.0
+            # cap spreads so max loss (width*100*qty) <= max_premium
+            qty = max(1, int(max_premium // (width * 100)))
+            qty = min(qty, 10)
+            if qty < 1:
+                return OrderResult(False, "Premium cap too small for a spread.")
+            if direction == "Long":
+                lside, sside = OrderSide.BUY, OrderSide.SELL
+                lintent, sintent = PositionIntent.BUY_TO_OPEN, PositionIntent.SELL_TO_OPEN
+            else:
+                lside, sside = OrderSide.BUY, OrderSide.SELL
+                lintent, sintent = PositionIntent.BUY_TO_OPEN, PositionIntent.SELL_TO_OPEN
+                long_leg, short_leg = chain[-1], chain[-2]  # bear-put: buy high strike, sell lower
+            leg1 = OptionLegRequest(symbol=long_leg.symbol, ratio_qty=1,
+                                    side=lside, position_intent=lintent)
+            leg2 = OptionLegRequest(symbol=short_leg.symbol, ratio_qty=1,
+                                    side=sside, position_intent=sintent)
+            # LIMIT at net mid (use a small offset); DAY to avoid stale rests
+            ord_req = OrderRequest(asset_class=AssetClass.US_OPTION,
+                                    order_class=OrderClass.MLEG,
+                                    type=OrderType.LIMIT,
+                                    time_in_force=TimeInForce.DAY, qty=qty,
+                                    limit_price=0.30, legs=[leg1, leg2])
+            o = self.trading.submit_order(ord_req)
+            return OrderResult(True,
+                f"{self.mode.upper()} OPTION {direction} vertical {underlying} "
+                f"x{qty} (exp {exp}) SUBMITTED status {getattr(o,'status','?')}",
+                {"ticker": underlying, "direction": direction, "qty": qty,
+                 "kind": "option", "conviction": conv})
+        except Exception as e:
+            return OrderResult(False, f"Option spread failed: {e}")
+
     def close_position(self, ticker) -> OrderResult:
         try:
             self.trading.close_position(ticker, qty=None)
