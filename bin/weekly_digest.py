@@ -1,9 +1,9 @@
 """ATLAS CAPITAL — Weekly Paper-Trading Digest (educational + practical).
 
 Pulls REAL orders / positions / equity from the Alpaca PAPER account, classifies
-each order as ATLAS Auto Trader (our 7-ticker universe) vs unattributed (flagged),
-and renders a deep, educational HTML report: what was bought/sold, why (the signal),
-and a forward discussion on "how do we make the most money."
+each order as ATLAS Auto Trader (our 7-ticker universe) vs Dr. King's manual trades
+(this is Dr. King's personal paper account — he trades it manually, which is expected
+and NEVER flagged as suspicious), and renders a deep, educational HTML report.
 
 Usage:
   GMAIL_ADDRESS=... GMAIL_APP_PASSWORD="..." python bin/weekly_digest.py [--since DAYS]
@@ -19,6 +19,20 @@ from alpaca.trading.enums import QueryOrderStatus
 
 # Our engine's universe (must match config.yaml auto_trader.signal_universe)
 ENGINE_UNIVERSE = {"NVDA", "TSLA", "AAPL", "AMD", "META", "COIN", "SPY"}
+
+# Dr. King's identities. This is HIS paper account; any order placed manually by
+# him (under centurionshark / ilya / Dr. King, or via dashboard/MCP) is a legitimate
+# manual trade and is labeled "Manual (Dr. King)" — never flagged as unattributed/suspicious.
+TRUSTED_ADMIN = {"centurionshark", "ilya", "dr king", "dr. king", "itorchinsky@alaska.edu",
+                 "ilyatorchinsky@gmail.com"}
+
+
+def classify_order(o):
+    """Return ('ATLAS'|'Manual', label) for an order. Engine universe -> ATLAS;
+    everything else in this account is Dr. King's manual trade (expected, not flagged)."""
+    if o.symbol in ENGINE_UNIVERSE:
+        return "ATLAS", "ATLAS Auto Trader"
+    return "Manual", "Manual (Dr. King)"
 
 
 def load_cfg():
@@ -107,12 +121,11 @@ def render_html(d):
         if sa.tzinfo is None:
             sa = sa.replace(tzinfo=dt.timezone.utc)
         ts = sa.astimezone(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        # Engine trades our 7-ticker universe; everything else is Dr. King's manual paper trade.
-        tag = "ATLAS" if o.symbol in ENGINE_UNIVERSE else "Manual"
-        return f"<tr><td>{sym}</td><td>{side}</td><td>{typ}</td><td>{qty}</td><td>{fq}</td><td>{st}</td><td>{ts}</td><td><b>{tag}</b></td></tr>"
+        tag, tag_label = classify_order(o)
+        return f"<tr><td>{sym}</td><td>{side}</td><td>{typ}</td><td>{qty}</td><td>{fq}</td><td>{st}</td><td>{ts}</td><td><b>{tag_label}</b></td></tr>"
 
     engine_rows = "".join(fmt_o(o) for o in d["engine_orders"]) or "<tr><td colspan=8>No ATLAS Auto Trader orders this week.</td></tr>"
-    other_rows = "".join(fmt_o(o) for o in d["other_orders"]) or "<tr><td colspan=8>No unattributed orders.</td></tr>"
+    other_rows = "".join(fmt_o(o) for o in d["other_orders"]) or "<tr><td colspan=8>No manual trades this week.</td></tr>"
 
     pos_rows = ""
     for p in d["positions"]:
