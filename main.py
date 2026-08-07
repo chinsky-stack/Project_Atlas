@@ -95,6 +95,7 @@ trader = get_trader()          # in-process sim engine (used by SimBroker)
 broker = get_broker_obj()      # uniform broker interface (sim / alpaca paper / live)
 journal = get_journal()
 lab = get_lab()
+cfg = load_config()            # full merged config (config.yaml + config.local.yaml)
 
 SOURCE_LABEL = md.source_name
 
@@ -270,6 +271,7 @@ with st.sidebar:
 # Tabs
 # -------------------------------------------------
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    "Auto Trader",
     "Mission Control",
     "New Idea",
     "Risk Office",
@@ -278,11 +280,10 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "System Status",
     "Member Comments",
     "Account",
-    "Auto Trader",
 ])
 
-# ---- TAB 1: Mission Control ----
-with tab1:
+# ---- TAB 9: Mission Control ----
+with tab9:
     st.subheader("Today's One Objective")
     objective = st.text_input(
         "What is the single most important thing to do today?",
@@ -586,8 +587,8 @@ with tab8:
         st.session_state.atlas_user = ""
         st.rerun()
 
-# ---- TAB 9: Auto Trader (Soros-adapted, aggressive but HARD-CAPPED, PAPER ONLY) ----
-with tab9:
+# ---- TAB 1: Auto Trader (Soros-adapted, aggressive but HARD-CAPPED, PAPER ONLY) ----
+with tab1:
     st.subheader("Autonomous Trader")
     st.warning("⚠️ PAPER ONLY. This engine trades the Alpaca PAPER sandbox — no real money. "
                "Every order passes the Risk Office + kill-switch. Limits are set in config.yaml → auto_trader.")
