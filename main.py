@@ -14,7 +14,7 @@ import streamlit as st
 import yaml
 import pandas as pd
 from datetime import datetime
-import json, os
+import json, os, secrets, string
 from pathlib import Path
 import sys
 
@@ -98,6 +98,28 @@ journal = get_journal()
 lab = get_lab()
 cfg = load_config()            # full merged config (config.yaml + config.local.yaml)
 
+
+def _gen_temp_pw(n=10):
+    """Generate a reasonable temporary password."""
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(n))
+
+
+def _alert_admin(text):
+    """Record an important alert for the relay cron to deliver to Telegram.
+    Silent in routine scans; only surfaces here when something needs Dr. King's eye."""
+    try:
+        os.makedirs("data", exist_ok=True)
+        with open("data/.alerts_pending.jsonl", "a") as f:
+            f.write(json.dumps({
+                "ts": datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                "kind": "admin_alert",
+                "text": text,
+            }) + "\n")
+    except Exception:
+        pass
+
+
 SOURCE_LABEL = md.source_name
 
 # -------------------------------------------------
@@ -172,25 +194,49 @@ if not st.session_state.atlas_user:
                 st.rerun()
             else:
                 st.error("Invalid credentials or account not yet approved.")
-        # Admin-mediated password reset (no self-service)
+        # Self-service password reset for ALREADY-APPROVED members.
+        # No admin approval needed — but Dr. King is notified. Lightweight email
+        # check prevents a random person from resetting someone else's password.
         st.divider()
-        if st.button("Forgot password? Request reset", key="pw_reset_req"):
-            st.session_state["pw_reset_user"] = (u.strip() if u else "")
-            # alert admin via pending-alerts relay (silent unless important)
-            try:
-                os.makedirs("data", exist_ok=True)
-                with open("data/.alerts_pending.jsonl", "a") as f:
-                    f.write(json.dumps({
-                        "ts": datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-                        "kind": "password_reset_request",
-                        "from": (u.strip() or "unknown user"),
-                        "note": f"Password reset requested from IP {ip}",
-                    }) + "\n")
-            except Exception:
-                pass
-            st.success("Reset request sent to the administrator. You'll get a new password shortly.")
-        else:
-            st.caption("Access is invitation-only; passwords are reset manually by the administrator.")
+        with st.form("pw_reset_form"):
+            ru = st.text_input("Username")
+            remail = st.text_input("Your email on file")
+            rreset = st.form_submit_button("Reset my password")
+        if rreset:
+            uname = ru.strip().lower()
+            if not uname or not remail:
+                st.error("Username and the email on file are required.")
+            elif not access.is_approved(uname):
+                st.error("Account not found or not approved.")
+                # notify admin of a suspicious attempt
+                _alert_admin(f"⚠ Password-reset attempt for unapproved/unknown user '{uname}' from {ip}")
+            else:
+                stored_email = access.member_email(uname)
+                if stored_email and stored_email.lower() != remail.strip().lower():
+                    st.error("Email does not match our records.")
+                    _alert_admin(f"⚠ Password-reset email mismatch for '{uname}' (got {remail}) from {ip}")
+                else:
+                    new_pw = _gen_temp_pw()
+                    try:
+                        access.reset_password(uname, new_pw)
+                        st.success(f"Password reset. Your new temporary password is:\n\n**{new_pw}**\n\nPlease sign in and change it under Account.")
+                        # email it if we have an address
+                        if stored_email:
+                            try:
+                                from bin.mailer import send_email
+                                mail_cfg = cfg.get("mail", {})
+                                os.environ.setdefault("GMAIL_ADDRESS", mail_cfg.get("gmail_address", ""))
+                                os.environ.setdefault("GMAIL_APP_PASSWORD", mail_cfg.get("gmail_app_password", ""))
+                                send_email("ATLAS CAPITAL — your password was reset",
+                                           f"<p>Hi {uname},</p><p>Your ATLAS CAPITAL password was reset via the self-service portal. "
+                                           f"Your new temporary password is: <b>{new_pw}</b></p>"
+                                           f"<p>Sign in and change it under the Account tab.</p>",
+                                           stored_email)
+                            except Exception:
+                                pass
+                        _alert_admin(f"🔑 Self-service password reset: '{uname}' reset their own password.")
+                    except Exception as e:
+                        st.error(f"Reset failed: {e}")
 
     with tab_request:
         # After a successful submit we swap the form for a clean confirmation

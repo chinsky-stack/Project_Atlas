@@ -232,6 +232,13 @@ class AccessStore:
         with self._lock:
             return [u for u, m in self.data["members"].items() if m.get("approved")]
 
+    def member_email(self, username: str) -> str:
+        """Return the registered email for a member ('' if none/not found)."""
+        username = (username or "").strip().lower()
+        with self._lock:
+            m = self.data["members"].get(username)
+            return (m or {}).get("email", "") or ""
+
     # ---------------- comments (moderated) ----------------
     def add_comment(self, user: str, text: str) -> int:
         text = text.strip()
