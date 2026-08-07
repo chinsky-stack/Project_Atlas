@@ -83,11 +83,20 @@ def build(cfg, since_days=7):
         else:
             other_orders.append(o)
 
+    # Penn's separate paper account (MASTA) — read-only observation
+    penn = None
+    try:
+        from src.member_broker import snapshot as penn_snap
+        penn = penn_snap(cfg, "penn", since_days=since_days)
+    except Exception:
+        penn = None
+
     return {
         "week_start": since, "week_end": now,
         "engine_orders": engine_orders, "other_orders": other_orders,
         "positions": positions, "equity": equity, "bp": bp,
         "cash": float(ac.cash),
+        "penn": penn,
     }
 
 
@@ -139,6 +148,27 @@ def render_html(d):
                       f"in the paper account (outside the engine's automated 7-ticker universe). These are expected — the "
                       f"engine and manual trades coexist in the same paper account.\n"
                       f"</div>")
+
+    # Penn's book block (read-only observation)
+    penn = d.get("penn")
+    if penn is None:
+        penn_block = "<p>Penn's book (MASTA) — account keys not configured yet.</p>"
+    else:
+        prow = "".join(
+            f"<tr><td>{esc(p.symbol)}</td><td>{esc(p.qty)}</td><td>{esc(p.avg_entry_price)}</td>"
+            f"<td>${float(p.market_value):,.0f}</td><td>${float(p.unrealized_pl):,.0f}</td></tr>"
+            for p in penn["positions"]) or "<tr><td colspan=5>No open positions.</td></tr>"
+        pord = "".join(
+            f"<tr><td>{esc(o.symbol)}</td><td>{esc(o.side)}</td><td>{esc(o.type)}</td><td>{esc(o.status)}</td></tr>"
+            for o in penn["orders"][-15:]) or "<tr><td colspan=4>No orders in window.</td></tr>"
+        penn_block = (
+            f"<div style='background:#f4f6fb;border-left:4px solid #888;padding:10px 14px;border-radius:6px'>"
+            f"<b>Penn's book (MASTA, $500k paper):</b> Equity ${penn['equity']:,.0f} · Cash ${penn['cash']:,.0f} · "
+            f"Buying power ${penn['bp']:,.0f}<br><i>Penn trades this account himself — Hermes only observes.</i></div>\n"
+            f"<table border=1 cellpadding=6 cellspacing=0 style='border-collapse:collapse;width:100%;font-size:13px;margin-top:8px'>"
+            f"<tr style='background:#444;color:#fff'><th>Symbol</th><th>Qty</th><th>Avg entry</th><th>Mkt value</th><th>Unrealized P&amp;L</th></tr>{prow}</table>\n"
+            f"<table border=1 cellpadding=6 cellspacing=0 style='border-collapse:collapse;width:100%;font-size:13px;margin-top:8px'>"
+            f"<tr style='background:#444;color:#fff'><th>Symbol</th><th>Side</th><th>Type</th><th>Status</th></tr>{pord}</table>")
 
     html = f"""
     <html><body style="font-family:-apple-system,Segoe UI,Arial;color:#222;max-width:820px;margin:auto">
@@ -194,7 +224,10 @@ def render_html(d):
     where to see performance, or anything in this digest. <b>What to expect:</b> Hermes answers questions conversationally —
     it will NOT change your account or place trades from email. For account changes, Dr. King handles those.</p>
     <hr>
-    <h3>6. Improvement suggestions tracked</h3>
+    <h3>6. Penn's Book (MASTA) — read-only observation</h3>
+    {penn_block}
+    <hr>
+    <h3>7. Improvement suggestions tracked</h3>
     <table border=1 cellpadding=6 cellspacing=0 style="border-collapse:collapse;width:100%;font-size:13px">
       <tr style="background:#0b3d91;color:#fff"><th>ID</th><th>Source</th><th>Suggestion</th><th>Status</th><th>Date</th></tr>
       {imp_rows}

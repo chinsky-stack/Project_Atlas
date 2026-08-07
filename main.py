@@ -647,6 +647,36 @@ with tab9:
             for line in s["log"]:
                 st.caption(line)
 
+    # ---- Penn's separate paper account ("MASTA") — READ-ONLY viewer ----
+    st.divider()
+    st.markdown(f"<div class='atlas-sub' style='font-size:11px'>Penn's Book (MASTA) — read-only</div>", unsafe_allow_html=True)
+    st.caption("Penn trades this $500k paper account himself. Hermes only reads it to show \"what's up\" — "
+               "the engine NEVER trades this account. Updates on page refresh.")
+    try:
+        from src.member_broker import snapshot as penn_snap
+        ps = penn_snap(cfg, "penn", since_days=7)
+        if ps is None:
+            st.info("Penn's account keys not configured yet (config.local.yaml → members.penn.broker).")
+        else:
+            pm1, pm2, pm3 = st.columns(3)
+            pm1.metric("Equity", f"${ps['equity']:,.0f}")
+            pm2.metric("Cash", f"${ps['cash']:,.0f}")
+            pm3.metric("Buying Power", f"${ps['bp']:,.0f}")
+            st.write("**Positions**")
+            if ps["positions"]:
+                for p in ps["positions"]:
+                    st.caption(f"{p.symbol}: {p.qty} @ {p.avg_entry_price} — MV ${float(p.market_value):,.0f} · uPL ${float(p.unrealized_pl):,.0f}")
+            else:
+                st.caption("No open positions.")
+            st.write("**Recent orders (7d)**")
+            if ps["orders"]:
+                for o in ps["orders"][-15:]:
+                    st.caption(f"{o.symbol} {o.side} {o.type} {o.status} @ {o.submitted_at}")
+            else:
+                st.caption("No orders in the last 7 days.")
+    except Exception as e:
+        st.warning(f"Could not load Penn's book: {e}")
+
 st.divider()
 st.markdown(
     f"<div class='atlas-disclaimer'>{COMPANY['disclaimer']}</div>",
