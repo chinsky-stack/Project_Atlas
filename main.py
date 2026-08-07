@@ -521,6 +521,35 @@ with tab7:
     else:
         st.info("No approved comments yet.")
 
+    # ---- Improvement suggestions (read-only, visible to all members) ----
+    st.divider()
+    st.markdown(f"<div class='atlas-sub' style='font-size:11px'>Improvement suggestions</div>", unsafe_allow_html=True)
+    st.caption("Ideas from members and Dr. King. Everyone can see what's been proposed and its status. "
+               "Dr. King reviews and acts on them.")
+    try:
+        from src.improvements import all_items as _all_sugg
+        sugg = _all_sugg()
+    except Exception:
+        sugg = []
+    if sugg:
+        srows = "".join(
+            f"<tr><td style='padding:4px 8px'>{s['id']}</td>"
+            f"<td style='padding:4px 8px'>{s['source']}</td>"
+            f"<td style='padding:4px 8px'>{s['text'][:160]}</td>"
+            f"<td style='padding:4px 8px'><b>{s['status']}</b></td>"
+            f"<td style='padding:4px 8px'>{s.get('date','')[:10]}</td></tr>"
+            for s in sugg)
+        st.markdown(
+            f"<table style='width:100%;border-collapse:collapse;font-size:13px;color:{COLORS['text']}'>"
+            f"<tr style='background:{COLORS['panel']}'>"
+            f"<th style='padding:4px 8px;text-align:left'>ID</th><th style='padding:4px 8px;text-align:left'>Source</th>"
+            f"<th style='padding:4px 8px;text-align:left'>Suggestion</th><th style='padding:4px 8px;text-align:left'>Status</th>"
+            f"<th style='padding:4px 8px;text-align:left'>Date</th></tr>{srows}</table>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info("No suggestions logged yet.")
+
 # ---- TAB 8: Account (self-service password change) ----
 with tab8:
     st.subheader("Account")
