@@ -83,7 +83,7 @@ def build(cfg, since_days=7):
         else:
             other_orders.append(o)
 
-    # Penn's separate paper account (MASTA) — read-only observation
+    # Penn's separate paper account (AutoTrading) — read-only observation
     penn = None
     try:
         from src.member_broker import snapshot as penn_snap
@@ -152,7 +152,7 @@ def render_html(d):
     # Penn's book block (read-only observation)
     penn = d.get("penn")
     if penn is None:
-        penn_block = "<p>Penn's book (MASTA) — account keys not configured yet.</p>"
+        penn_block = "<p>Penn's book (AutoTrading) — account keys not configured yet.</p>"
     else:
         prow = "".join(
             f"<tr><td>{esc(p.symbol)}</td><td>{esc(p.qty)}</td><td>{esc(p.avg_entry_price)}</td>"
@@ -163,7 +163,7 @@ def render_html(d):
             for o in penn["orders"][-15:]) or "<tr><td colspan=4>No orders in window.</td></tr>"
         penn_block = (
             f"<div style='background:#f4f6fb;border-left:4px solid #888;padding:10px 14px;border-radius:6px'>"
-            f"<b>Penn's book (MASTA, $500k paper):</b> Equity ${penn['equity']:,.0f} · Cash ${penn['cash']:,.0f} · "
+            f"<b>Penn's book (AutoTrading, $500k paper):</b> Equity ${penn['equity']:,.0f} · Cash ${penn['cash']:,.0f} · "
             f"Buying power ${penn['bp']:,.0f}<br><i>Penn trades this account himself — Hermes only observes.</i></div>\n"
             f"<table border=1 cellpadding=6 cellspacing=0 style='border-collapse:collapse;width:100%;font-size:13px;margin-top:8px'>"
             f"<tr style='background:#444;color:#fff'><th>Symbol</th><th>Qty</th><th>Avg entry</th><th>Mkt value</th><th>Unrealized P&amp;L</th></tr>{prow}</table>\n"
@@ -224,7 +224,7 @@ def render_html(d):
     where to see performance, or anything in this digest. <b>What to expect:</b> Hermes answers questions conversationally —
     it will NOT change your account or place trades from email. For account changes, Dr. King handles those.</p>
     <hr>
-    <h3>6. Penn's Book (MASTA) — read-only observation</h3>
+    <h3>6. Penn's Book (AutoTrading) — read-only observation</h3>
     {penn_block}
     <hr>
     <h3>7. Improvement suggestions tracked</h3>

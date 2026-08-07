@@ -724,10 +724,10 @@ with tab1:
     st.divider()
     st.markdown(f"<div class='atlas-sub' style='font-size:11px'>Account Books — read-only</div>", unsafe_allow_html=True)
     st.caption("Two separate paper accounts under ATLAS CAPITAL. Dr. King's is traded automatically by Hermes; "
-               "Penn's (MASTA) is traded by Penn himself. Both are shown here for visibility. Updates on page refresh.")
+               "Penn's (AutoTrading) is traded by Penn himself. Both are shown here for visibility. Updates on page refresh.")
 
-    # Engine book — now traded inside Penn's MASTA ($500k) account.
-    st.write("**Penn's MASTA — traded by ATLAS engine (paper)**")
+    # Engine book — now traded inside Penn's AutoTrading ($500k) account.
+    st.write("**Penn's AutoTrading — traded by ATLAS engine (paper)**")
     try:
         ac = broker.trading.get_account()
         dk_pos = broker.trading.get_all_positions()
@@ -770,7 +770,7 @@ with tab1:
         except Exception as e:
             st.warning(f"Could not load Penn's personal account: {e}")
     else:
-        st.info("⏳ PENDING — Penn's new personal account not wired yet. The engine currently trades his MASTA; add keys under config.local.yaml → members.penn.personal_broker when ready.")
+        st.info("⏳ PENDING — Penn's new personal account not wired yet. The engine currently trades his AutoTrading account; add keys under config.local.yaml → members.penn.personal_broker when ready.")
 
 st.divider()
 st.markdown(
