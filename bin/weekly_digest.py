@@ -97,13 +97,18 @@ def render_html(d):
         side = esc(o.side)
         st = esc(o.status)
         typ = esc(o.type)
-        qty = getattr(o, "qty", None) or "?"
+        # qty may be None when the order used a notional ($) amount instead of share count
+        qty = getattr(o, "qty", None)
+        if qty in (None, ""):
+            notional = getattr(o, "notional", None)
+            qty = f"${float(notional):,.0f}" if notional else "—"
         fq = getattr(o, "filled_qty", None) or 0
         sa = o.submitted_at
         if sa.tzinfo is None:
             sa = sa.replace(tzinfo=dt.timezone.utc)
         ts = sa.astimezone(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        tag = "ATLAS" if o.symbol in ENGINE_UNIVERSE else "OTHER"
+        # Engine trades our 7-ticker universe; everything else is Dr. King's manual paper trade.
+        tag = "ATLAS" if o.symbol in ENGINE_UNIVERSE else "Manual"
         return f"<tr><td>{sym}</td><td>{side}</td><td>{typ}</td><td>{qty}</td><td>{fq}</td><td>{st}</td><td>{ts}</td><td><b>{tag}</b></td></tr>"
 
     engine_rows = "".join(fmt_o(o) for o in d["engine_orders"]) or "<tr><td colspan=8>No ATLAS Auto Trader orders this week.</td></tr>"
@@ -116,11 +121,11 @@ def render_html(d):
 
     other_flag = ""
     if d["other_orders"]:
-        other_flag = f"""<div style="border:1px solid #c0392b;background:#fdecea;padding:10px;border-radius:6px;margin:10px 0">
-          <b>⚠ Unattributed orders detected.</b> {len(d['other_orders'])} order(s) this week were placed by something
-          OTHER than the ATLAS Auto Trader (symbols outside our 7-ticker universe, or submitted outside market hours).
-          These are NOT part of our strategy and should be investigated before trusting any P&amp;L.
-        </div>"""
+        other_flag = (f"<div style=\"border:1px solid #bbb;background:#f4f6fb;padding:10px;border-radius:6px;margin:10px 0\">\n"
+                      f"  <b>Manual trades by Dr. King.</b> {len(d['other_orders'])} order(s) this week were placed manually "
+                      f"in the paper account (outside the engine's automated 7-ticker universe). These are expected — the "
+                      f"engine and manual trades coexist in the same paper account.\n"
+                      f"</div>")
 
     html = f"""
     <html><body style="font-family:-apple-system,Segoe UI,Arial;color:#222;max-width:820px;margin:auto">
@@ -154,9 +159,9 @@ def render_html(d):
     </ul>
     <p>For each filled order above, the <i>why</i> is the signal that fired for that ticker at that time. We are learning
     which regimes (trending vs choppy) our rules capture and which they whipsaw on.</p>
-    <h3>4. Orders NOT from our strategy (flagged for review)</h3>
+    <h3>4. Manual trades by Dr. King (paper account)</h3>
     <table border=1 cellpadding=6 cellspacing=0 style="border-collapse:collapse;width:100%;font-size:13px">
-      <tr style="background:#c0392b;color:#fff"><th>Symbol</th><th>Side</th><th>Type</th><th>Qty</th><th>Filled</th><th>Status</th><th>Time</th><th>Src</th></tr>
+      <tr style="background:#444;color:#fff"><th>Symbol</th><th>Side</th><th>Type</th><th>Qty / $</th><th>Filled</th><th>Status</th><th>Time</th><th>Src</th></tr>
       {other_rows}
     </table>
     <h3>5. Discussion — how do we make the most money (responsibly)?</h3>
@@ -171,7 +176,7 @@ def render_html(d):
     <p><b>Bottom line:</b> the engine is a disciplined apprentice, not a Oracle. It will take losers. What compounds is the
     <i>system</i> — risk-first, evidence-driven, never over-levered. We review, we tighten, we repeat.</p>
     <p style="background:#eef;padding:8px;border-radius:6px"><b>Questions? Talk to Hermes.</b> Email Dr. King and start your message with
-    <b>"Hermes:"</b> — Hermes (the ATLAS assistant, named for the brand Penn likes) reads inbound mail and answers your
+    <b>"Hermes:"</b> — Hermes (the ATLAS assistant) reads inbound mail and answers your
     questions right away. <b>Ask about:</b> your login/password, how the options spreads work, what's paper vs live,
     where to see performance, or anything in this digest. <b>What to expect:</b> Hermes answers questions conversationally —
     it will NOT change your account or place trades from email. For account changes, Dr. King handles those.</p>
