@@ -392,12 +392,12 @@ class AlpacaBroker:
                                     side=lside, position_intent=lintent)
             leg2 = OptionLegRequest(symbol=short_leg.symbol, ratio_qty=1,
                                     side=sside, position_intent=sintent)
-            # LIMIT at net mid (use a small offset); DAY to avoid stale rests
+            # MARKET order (already hours-gated above, so it fills during RTH)
             ord_req = OrderRequest(asset_class=AssetClass.US_OPTION,
                                     order_class=OrderClass.MLEG,
-                                    type=OrderType.LIMIT,
+                                    type=OrderType.MARKET,
                                     time_in_force=TimeInForce.DAY, qty=qty,
-                                    limit_price=0.30, legs=[leg1, leg2])
+                                    legs=[leg1, leg2])
             o = self.trading.submit_order(ord_req)
             return OrderResult(True,
                 f"{self.mode.upper()} OPTION {direction} vertical {underlying} "

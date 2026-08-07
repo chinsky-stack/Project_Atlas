@@ -60,6 +60,7 @@ access:
 # These are "the limits we set" — tune freely; they are enforced in code.
 auto_trader:
   enabled: false                 # must be flipped true (and started from the dashboard) to run
+  auto_start: true               # when true, engine launches itself at portal start (paper-only, autonomous)
   paper_only: true               # never trades live; live_confirmed must stay false
   book_reference: 200000.0       # system's tradable book (raise paper equity in Alpaca dashboard to match)
   # ---- Aggressive envelope (capped) ----

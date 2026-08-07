@@ -573,6 +573,12 @@ with tab9:
             try:
                 from auto_trader import AutoTrader
                 st.session_state.at_engine = AutoTrader(broker, cfg, market_price=broker.market_price)
+                # Autonomous launch: if authorized + paper-only, start on first load
+                if at_cfg.get("auto_start", False) and at_cfg.get("paper_only", True):
+                    try:
+                        st.session_state.at_engine.start()
+                    except Exception as e:
+                        st.warning(f"AutoTrader auto-start skipped: {e}")
             except Exception as e:
                 st.error(f"Engine init failed: {e}")
         eng = st.session_state.at_engine

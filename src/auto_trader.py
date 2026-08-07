@@ -160,9 +160,20 @@ class AutoTrader:
             return False
         return True
 
+    def _equity_cap(self) -> float:
+        """Max capital the engine may deploy: the smaller of our book reference
+        and the broker's real paper buying power."""
+        bp = self.book
+        try:
+            real = float(self.broker.buying_power())
+            bp = min(bp, real)
+        except Exception:
+            pass
+        return bp
+
     def _size_stock(self, price: float) -> Optional[int]:
         c = self.cfg
-        equity = self.book
+        equity = self._equity_cap()
         max_pos_val = equity * (c.get("max_single_position_pct", 20.0) / 100.0)
         max_risk_val = equity * (c.get("max_capital_at_risk_pct", 40.0) / 100.0)
         cap = min(max_pos_val, max_risk_val)
@@ -173,7 +184,7 @@ class AutoTrader:
 
     def _size_option_premium(self) -> float:
         c = self.cfg
-        equity = self.book
+        equity = self._equity_cap()
         return equity * (c.get("max_premium_at_risk_per_option_trade_pct", 8.0) / 100.0)
 
     def _tick_once(self):
