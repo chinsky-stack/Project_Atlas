@@ -347,8 +347,8 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "Account",
 ])
 
-# ---- TAB 9: Mission Control ----
-with tab9:
+# ---- TAB 2: Mission Control ----
+with tab2:
     st.subheader("Today's One Objective")
     objective = st.text_input(
         "What is the single most important thing to do today?",
@@ -404,8 +404,8 @@ with tab9:
             st.success("No stops triggered (broker-enforced stops apply in paper/live mode).")
         st.rerun()
 
-# ---- TAB 2: New Idea (Strategy Lab) ----
-with tab2:
+# ---- TAB 3: New Idea (Strategy Lab) ----
+with tab3:
     st.subheader("New High-Conviction Idea")
     st.caption("Soros style: only proceed if conviction is high. Submitting routes to the Risk Office + simulated fill.")
 
@@ -463,8 +463,8 @@ with tab2:
     else:
         st.info("No ideas submitted yet.")
 
-# ---- TAB 3: Risk Office ----
-with tab3:
+# ---- TAB 4: Risk Office ----
+with tab4:
     st.subheader("Risk Office")
     st.caption("Hard gate. Can veto any idea. Rules are enforced in code at order time.")
 
@@ -508,8 +508,8 @@ with tab3:
         st.success("Book reset.")
         st.rerun()
 
-# ---- TAB 4: Trade Journal ----
-with tab4:
+# ---- TAB 5: Trade Journal ----
+with tab5:
     st.subheader("Trade Journal")
     st.write("All trades and decisions are logged here.")
     entries = journal.get_all()
@@ -518,8 +518,8 @@ with tab4:
     else:
         st.info("Journal is empty. First trade will appear here.")
 
-# ---- TAB 5: Markets ----
-with tab5:
+# ---- TAB 6: Markets ----
+with tab6:
     st.subheader("Markets (live / simulated quotes)")
     st.caption(f"Source: {SOURCE_LABEL}. Quote latency depends on the feed.")
     tickers = st.text_input(
@@ -545,8 +545,8 @@ with tab5:
     else:
         st.info("Enter at least one ticker.")
 
-# ---- TAB 6: System Status ----
-with tab6:
+# ---- TAB 7: System Status ----
+with tab7:
     st.subheader("System Status")
     st.success("Dashboard running")
     st.success("Config loaded")
@@ -556,8 +556,8 @@ with tab6:
     st.info(f"Market data source: {SOURCE_LABEL}")
     st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-# ---- TAB 7: Member Comments (moderated) ----
-with tab7:
+# ---- TAB 8: Member Comments (moderated) ----
+with tab8:
     st.subheader("Member Comments")
     st.caption("Submitted comments are reviewed by the administrator before they appear. "
                "This keeps the portal clean and intentional.")
@@ -616,8 +616,8 @@ with tab7:
     else:
         st.info("No suggestions logged yet.")
 
-# ---- TAB 8: Account (self-service password change) ----
-with tab8:
+# ---- TAB 9: Account (self-service password change) ----
+with tab9:
     st.subheader("Account")
     st.markdown(
         f"<span style='color:{COLORS['muted']}'>Signed in as "
