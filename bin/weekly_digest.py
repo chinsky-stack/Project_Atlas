@@ -156,6 +156,11 @@ def render_html(d):
     </ul>
     <p><b>Bottom line:</b> the engine is a disciplined apprentice, not a Oracle. It will take losers. What compounds is the
     <i>system</i> — risk-first, evidence-driven, never over-levered. We review, we tighten, we repeat.</p>
+    <p style="background:#eef;padding:8px;border-radius:6px"><b>Questions? Talk to Hermes.</b> Email Dr. King and start your message with
+    <b>"Hermes:"</b> — Hermes (the ATLAS assistant, named for the brand Penn likes) reads inbound mail and answers your
+    questions right away. <b>Ask about:</b> your login/password, how the options spreads work, what's paper vs live,
+    where to see performance, or anything in this digest. <b>What to expect:</b> Hermes answers questions conversationally —
+    it will NOT change your account or place trades from email. For account changes, Dr. King handles those.</p>
     <hr>
     <p style="color:#888;font-size:12px">ATLAS CAPITAL · paper-trading research only · not investment advice ·
     generated {d['week_end'].strftime('%Y-%m-%d %H:%M')} UTC</p>
