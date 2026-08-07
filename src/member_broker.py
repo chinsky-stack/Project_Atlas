@@ -14,12 +14,12 @@ from alpaca.trading.requests import GetOrdersRequest
 from alpaca.trading.enums import QueryOrderStatus
 
 
-def _member_cfg(cfg, who="penn"):
-    return (cfg.get("members", {}) or {}).get(who, {}).get("broker", {}) or {}
+def _member_cfg(cfg, who="penn", key_block="broker"):
+    return (cfg.get("members", {}) or {}).get(who, {}).get(key_block, {}) or {}
 
 
-def get_client(cfg, who="penn"):
-    bc = _member_cfg(cfg, who)
+def get_client(cfg, who="penn", key_block="broker"):
+    bc = _member_cfg(cfg, who, key_block)
     key = bc.get("api_key", "")
     secret = bc.get("api_secret", "")
     if not key or not secret or "REPLACE" in key:
@@ -27,10 +27,11 @@ def get_client(cfg, who="penn"):
     return TradingClient(key, secret, paper=(bc.get("mode") != "live"))
 
 
-def snapshot(cfg, who="penn", since_days=7):
+def snapshot(cfg, who="penn", since_days=7, key_block="broker"):
     """Return dict with equity/cash/bp/positions/orders for the member account.
-    Returns None if keys not configured."""
-    t = get_client(cfg, who)
+    Returns None if keys not configured. `key_block` selects which broker block
+    under members.<who> (e.g. "broker" = MASTA, "personal_broker" = personal)."""
+    t = get_client(cfg, who, key_block)
     if t is None:
         return None
     import datetime as dt

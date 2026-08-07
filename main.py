@@ -726,8 +726,8 @@ with tab1:
     st.caption("Two separate paper accounts under ATLAS CAPITAL. Dr. King's is traded automatically by Hermes; "
                "Penn's (MASTA) is traded by Penn himself. Both are shown here for visibility. Updates on page refresh.")
 
-    # Dr. King's book (the auto-traded one) via the live broker client
-    st.write("**Dr. King's Book — auto-traded by Hermes (paper)**")
+    # Engine book — now traded inside Penn's MASTA ($500k) account.
+    st.write("**Penn's MASTA — traded by ATLAS engine (paper)**")
     try:
         ac = broker.trading.get_account()
         dk_pos = broker.trading.get_all_positions()
@@ -735,37 +735,42 @@ with tab1:
         dk1.metric("Equity", f"${float(ac.equity):,.0f}")
         dk2.metric("Cash", f"${float(ac.cash):,.0f}")
         dk3.metric("Buying Power", f"${float(ac.buying_power):,.0f}")
+        st.caption("Engine book = $200k of this $500k account. Dr. King's old account is retired.")
         if dk_pos:
             for p in dk_pos:
                 st.caption(f"{p.symbol}: {p.qty} @ {p.avg_entry_price} — MV ${float(p.market_value):,.0f} · uPL ${float(p.unrealized_pl):,.0f}")
         else:
             st.caption("No open positions.")
     except Exception as e:
-        st.warning(f"Could not load Dr. King's book: {e}")
+        st.warning(f"Could not load engine book: {e}")
 
-    # Penn's book (MASTA) — read-only via member_broker
-    st.write("**Penn's Book (MASTA) — traded by Penn himself**")
-    try:
-        from src.member_broker import snapshot as penn_snap
-        ps = penn_snap(cfg, "penn", since_days=7)
-        if ps is None:
-            st.info("Penn's account keys not configured yet (config.local.yaml → members.penn.broker).")
-        else:
-            pm1, pm2, pm3 = st.columns(3)
-            pm1.metric("Equity", f"${ps['equity']:,.0f}")
-            pm2.metric("Cash", f"${ps['cash']:,.0f}")
-            pm3.metric("Buying Power", f"${ps['bp']:,.0f}")
-            if ps["positions"]:
-                for p in ps["positions"]:
-                    st.caption(f"{p.symbol}: {p.qty} @ {p.avg_entry_price} — MV ${float(p.market_value):,.0f} · uPL ${float(p.unrealized_pl):,.0f}")
+    # Penn's SEPARATE personal account (coming later) — read-only via personal_broker
+    st.write("**Penn's Personal Account — traded by Penn himself**")
+    pb = (cfg.get("members", {}).get("penn", {}).get("personal_broker", {}) or {})
+    if pb.get("api_key"):
+        try:
+            from src.member_broker import snapshot as penn_snap
+            ps = penn_snap(cfg, "penn", since_days=7, key_block="personal_broker")
+            if ps is None:
+                st.info("Penn's personal account keys not configured yet.")
             else:
-                st.caption("No open positions.")
-            if ps["orders"]:
-                st.write("**Recent orders (7d)**")
-                for o in ps["orders"][-15:]:
-                    st.caption(f"{o.symbol} {o.side} {o.type} {o.status} @ {o.submitted_at}")
-    except Exception as e:
-        st.warning(f"Could not load Penn's book: {e}")
+                pm1, pm2, pm3 = st.columns(3)
+                pm1.metric("Equity", f"${ps['equity']:,.0f}")
+                pm2.metric("Cash", f"${ps['cash']:,.0f}")
+                pm3.metric("Buying Power", f"${ps['bp']:,.0f}")
+                if ps["positions"]:
+                    for p in ps["positions"]:
+                        st.caption(f"{p.symbol}: {p.qty} @ {p.avg_entry_price} — MV ${float(p.market_value):,.0f} · uPL ${float(p.unrealized_pl):,.0f}")
+                else:
+                    st.caption("No open positions.")
+                if ps["orders"]:
+                    st.write("**Recent orders (7d)**")
+                    for o in ps["orders"][-15:]:
+                        st.caption(f"{o.symbol} {o.side} {o.type} {o.status} @ {o.submitted_at}")
+        except Exception as e:
+            st.warning(f"Could not load Penn's personal account: {e}")
+    else:
+        st.info("⏳ PENDING — Penn's new personal account not wired yet. The engine currently trades his MASTA; add keys under config.local.yaml → members.penn.personal_broker when ready.")
 
 st.divider()
 st.markdown(
