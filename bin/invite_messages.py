@@ -1,7 +1,6 @@
 # ATLAS CAPITAL — friend invitation (email)
 # Personalized intro from the Atlas assistant, sent by Dr. King.
-# Recipients: Dr. King (To: itorchinsky@alaska.edu) + CC (ilyatorchinsky@gmail.com)
-#             + BCC (pennmou@gmail.com). Adjust BCC list as friends are added.
+# Recipients: Dr. King (To) + CC (ilyatorchinsky@gmail.com) + BCC (pennmou@gmail.com).
 
 SUBJECT = "You're invited to ATLAS CAPITAL — a members-only trading research portal"
 
