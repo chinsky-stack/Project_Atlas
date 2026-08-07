@@ -14,6 +14,7 @@ import streamlit as st
 import yaml
 import pandas as pd
 from datetime import datetime
+import json, os
 from pathlib import Path
 import sys
 
@@ -155,8 +156,8 @@ if not st.session_state.atlas_user:
 
     with tab_login:
         with st.form("login_form"):
-            u = st.text_input("Username")
-            p = st.text_input("Password", type="password")
+            u = st.text_input("Username", autocomplete="username")
+            p = st.text_input("Password", type="password", autocomplete="current-password")
             submit = st.form_submit_button("Sign In")
         if submit:
             try:
@@ -171,7 +172,25 @@ if not st.session_state.atlas_user:
                 st.rerun()
             else:
                 st.error("Invalid credentials or account not yet approved.")
-        st.caption("Forgot your password? Message the administrator — access is invitation-only and passwords are reset manually.")
+        # Admin-mediated password reset (no self-service)
+        st.divider()
+        if st.button("Forgot password? Request reset", key="pw_reset_req"):
+            st.session_state["pw_reset_user"] = (u.strip() if u else "")
+            # alert admin via pending-alerts relay (silent unless important)
+            try:
+                os.makedirs("data", exist_ok=True)
+                with open("data/.alerts_pending.jsonl", "a") as f:
+                    f.write(json.dumps({
+                        "ts": datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                        "kind": "password_reset_request",
+                        "from": (u.strip() or "unknown user"),
+                        "note": f"Password reset requested from IP {ip}",
+                    }) + "\n")
+            except Exception:
+                pass
+            st.success("Reset request sent to the administrator. You'll get a new password shortly.")
+        else:
+            st.caption("Access is invitation-only; passwords are reset manually by the administrator.")
 
     with tab_request:
         # After a successful submit we swap the form for a clean confirmation

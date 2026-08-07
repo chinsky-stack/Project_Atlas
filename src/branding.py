@@ -71,6 +71,10 @@ html, body, .stApp {{
 .stTextInput > div > div > input, .stTextArea textarea {{
     background:{COLORS['bg']} !important; color:{COLORS['text']} !important;
     border:1px solid #2a3344 !important; border-radius:10px;
+    font-size:16px !important; padding:0.6rem 0.8rem !important;
+}}
+.stTextInput label, .stTextArea label {{
+    font-size:15px !important; font-weight:600 !important; color:{COLORS['text']} !important;
 }}
 .stTextInput > div > div > input:focus {{ border-color:{COLORS['accent']} !important; }}
 

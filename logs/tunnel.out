@@ -1635,3 +1635,62 @@ See 'cloudflared tunnel run --help'.
 2026-08-07T08:11:29Z INF Registered tunnel connection connIndex=2 connection=73ee9e17-6018-4fc6-94f4-028f80bd1522 event=0 ip=2606:4700:a0::4 location=sea10 protocol=quic
 2026-08-07T08:11:30Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=3 event=0 ip=2606:4700:a8::5
 2026-08-07T08:11:30Z INF Registered tunnel connection connIndex=3 connection=dd2649f3-df92-42f9-abc6-8519358ec9f3 event=0 ip=2606:4700:a8::5 location=sea07 protocol=quic
+2026-08-07T08:25:11Z INF Starting tunnel tunnelID=93585ee0-d370-4ab2-b380-afc57715dc34
+2026-08-07T08:25:11Z INF Version 2026.7.3 (Checksum f35c50089cd25f77a4cb5a2152036bc26db15aa31fbe11f7995d2e42a4ed6257)
+2026-08-07T08:25:11Z INF GOOS: darwin, GOVersion: go1.26.2, GoArch: arm64
+2026-08-07T08:25:11Z INF Settings: map[cred-file:/Users/it/.cloudflared/93585ee0-d370-4ab2-b380-afc57715dc34.json credentials-file:/Users/it/.cloudflared/93585ee0-d370-4ab2-b380-afc57715dc34.json]
+2026-08-07T08:25:11Z INF Autoupdate frequency is set autoupdateFreq=86400000
+2026-08-07T08:25:11Z INF Generated Connector ID: 02c0439f-c43e-499a-be33-748693a2370d
+2026-08-07T08:25:12Z INF Initial protocol quic
+2026-08-07T08:25:12Z INF ICMP proxy will use 192.168.1.41 as source for IPv4
+2026-08-07T08:25:12Z INF ICMP proxy will use fe80::c0:a4f3:a03:4dca in zone en1 as source for IPv6
+2026-08-07T08:25:12Z INF Created ICMP proxy listening on 192.168.1.41:0
+2026-08-07T08:25:12Z INF ICMP proxy will use 192.168.1.41 as source for IPv4
+2026-08-07T08:25:12Z INF ICMP proxy will use fe80::c0:a4f3:a03:4dca in zone en1 as source for IPv6
+2026-08-07T08:25:12Z INF Starting metrics server on 127.0.0.1:20241/metrics
+2026-08-07T08:25:12Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=2606:4700:a0::3
+2026-08-07T08:25:12Z INF Registered tunnel connection connIndex=0 connection=6c509a36-cd09-4567-a45b-f4b31b7be198 event=0 ip=2606:4700:a0::3 location=sea10 protocol=quic
+2026-08-07T08:25:12Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=1 event=0 ip=2606:4700:a8::10
+2026-08-07T08:25:12Z INF Registered tunnel connection connIndex=1 connection=9b2764e2-b0a1-4a66-abb5-d243e56af8fe event=0 ip=2606:4700:a8::10 location=sea08 protocol=quic
+2026-08-07T08:25:12Z INF +-------------------------------------------------------------------------------------+
+2026-08-07T08:25:12Z INF |                               CONNECTIVITY PRE-CHECKS                               |
+2026-08-07T08:25:12Z INF +-------------------------------------------------------------------------------------+
+2026-08-07T08:25:12Z INF |  COMPONENT         TARGET                     STATUS  DETAILS                       |
+2026-08-07T08:25:12Z INF |  DNS Resolution    region1.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-08-07T08:25:12Z INF |  DNS Resolution    region2.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-08-07T08:25:12Z INF |  UDP Connectivity  region1.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-08-07T08:25:12Z INF |  UDP Connectivity  region2.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-08-07T08:25:12Z INF |  TCP Connectivity  region1.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-08-07T08:25:12Z INF |  TCP Connectivity  region2.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-08-07T08:25:12Z INF |  Cloudflare API    api.cloudflare.com:443     PASS    API is reachable              |
+2026-08-07T08:25:12Z INF |                                                                                     |
+2026-08-07T08:25:12Z INF |  SUMMARY: Environment is healthy. cloudflared will use 'quic' as primary protocol.  |
+2026-08-07T08:25:12Z INF +-------------------------------------------------------------------------------------+
+2026-08-07T08:25:12Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 status=pass target=region1.v2.argotunnel.com
+2026-08-07T08:25:12Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 status=pass target=region2.v2.argotunnel.com
+2026-08-07T08:25:12Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 status=pass target=region1.v2.argotunnel.com
+2026-08-07T08:25:12Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 status=pass target=region2.v2.argotunnel.com
+2026-08-07T08:25:12Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 status=pass target=region1.v2.argotunnel.com
+2026-08-07T08:25:12Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 status=pass target=region2.v2.argotunnel.com
+2026-08-07T08:25:12Z INF precheck component="Cloudflare API" details="API is reachable" run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 status=pass target=api.cloudflare.com:443
+2026-08-07T08:25:12Z INF precheck complete hard_fail=false run_id=9ea7ebfe-075f-48f8-ab0d-724134a99739 suggested_protocol=quic
+2026-08-07T08:25:13Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:13Z ERR failed to run the datagram handler error="context canceled" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:13Z WRN failed to serve tunnel connection error="control stream encountered a failure while serving" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:13Z WRN Serve tunnel error error="control stream encountered a failure while serving" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:13Z INF Retrying connection in up to 2s connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:14Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=3 event=0 ip=2606:4700:a8::1
+2026-08-07T08:25:14Z INF Registered tunnel connection connIndex=3 connection=176b87b2-7e2c-427f-b46f-226c7d942730 event=0 ip=2606:4700:a8::1 location=sea09 protocol=quic
+2026-08-07T08:25:15Z WRN Connection terminated error="control stream encountered a failure while serving" connIndex=2
+2026-08-07T08:25:33Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:33Z ERR failed to run the datagram handler error="context canceled" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:33Z WRN failed to serve tunnel connection error="control stream encountered a failure while serving" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:33Z WRN Serve tunnel error error="control stream encountered a failure while serving" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:33Z INF Retrying connection in up to 4s connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:37Z WRN Connection terminated error="control stream encountered a failure while serving" connIndex=2
+2026-08-07T08:25:38Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:38Z ERR failed to run the datagram handler error="context canceled" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:38Z WRN failed to serve tunnel connection error="control stream encountered a failure while serving" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:38Z WRN Serve tunnel error error="control stream encountered a failure while serving" connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:38Z INF Retrying connection in up to 8s connIndex=2 event=0 ip=2606:4700:a0::1
+2026-08-07T08:25:39Z WRN Connection terminated error="control stream encountered a failure while serving" connIndex=2
