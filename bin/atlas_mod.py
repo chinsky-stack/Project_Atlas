@@ -40,6 +40,55 @@ def main():
         print(" ", store.approved_members())
         return
 
+    # ---- suggestion follow-up: atlas_mod.py suggestion <id> <approve|decline|change> [note] ----
+    if args[0].lower() == "suggestion":
+        if len(args) < 3:
+            print("usage: atlas_mod.py suggestion <ID> <approve|decline|change> [note...]")
+            sys.exit(2)
+        iid = args[1]
+        decision = args[2].lower()
+        note = " ".join(args[3:]) if len(args) > 3 else ""
+        from improvements import set_status, all_items
+        item = next((i for i in all_items() if i["id"] == iid), None)
+        if not item:
+            print("suggestion not found:", iid)
+            sys.exit(1)
+        status = {"approve": "accepted", "decline": "rejected", "change": "changed"}[decision]
+        set_status(iid, status, note)
+        # follow-up email to the source if we have an address
+        src = item["source"]
+        addr = None
+        if src.startswith("Penn"):
+            addr = "pennmou@gmail.com"
+        if addr:
+            import yaml
+            cfg = yaml.safe_load(open("config.yaml")); loc = yaml.safe_load(open("config.local.yaml"))
+            def m(b,o):
+                for k,v in o.items():
+                    if isinstance(v,dict) and isinstance(b.get(k),dict): m(b[k],v)
+                    else: b[k]=v
+            m(cfg,loc)
+            mail = cfg.get("mail", {})
+            os.environ["GMAIL_ADDRESS"]=mail["gmail_address"]; os.environ["GMAIL_APP_PASSWORD"]=mail["gmail_app_password"]
+            from bin.inbound_monitor import _letter, send_reply
+            name = "Penn" if addr=="pennmou@gmail.com" else src.split()[0]
+            verdict = {"accepted":"we're moving forward with it","rejected":"we've decided not to move forward","changed":"we'll do a revised version"}[status]
+            paras = [
+                f"Hi {name},",
+                f"Thank you again for the suggestion about: \u201c{item['text'][:200]}\u201d.",
+                f"Dr. King and I reviewed it. The outcome: {verdict}.",
+            ]
+            if note:
+                paras.append(f"Notes on the decision: {note}")
+            paras.append("We genuinely appreciate you shaping ATLAS CAPITAL with us, and we'll keep you posted as things evolve.")
+            html = _letter(paras)
+            send_reply(addr, f"Re: your ATLAS CAPITAL suggestion ({iid})", html, cfg,
+                       f"Hi {name}, thanks again for the suggestion ({iid}). Outcome: {verdict}. {'Note: '+note if note else ''} (ATLAS CAPITAL)")
+            print(f"SUGGESTION {iid} -> {status}; follow-up emailed to {addr}")
+        else:
+            print(f"SUGGESTION {iid} -> {status} (no email address for source '{src}'; tell Dr. King to relay)")
+        return
+
     action = args[0].lower()  # approve | deny | reset | add
     if action not in ("approve", "deny", "reset", "add"):
         print("usage: atlas_mod.py [approve|deny] [req <token> | comment <id>]")
@@ -83,9 +132,31 @@ def main():
             print("ACCESS DENIED" if ok else "FAILED (token not found)")
     elif kind == "comment":
         cid = int(target)
-        ok = store.approve_comment(cid) if action == "approve" else store.deny_comment(cid)
-        print("COMMENT APPROVED" if (ok and action == "approve") else
-              "COMMENT DENIED" if (ok and action == "deny") else "FAILED (id not found / not pending)")
+        if action == "approve":
+            # capture comment text before approval for suggestion logging
+            c = None
+            try:
+                for x in store.data.get("comments", []):
+                    if x.get("id") == cid:
+                        c = x
+                        break
+            except Exception:
+                c = None
+            ok = store.approve_comment(cid)
+            print("COMMENT APPROVED" if ok else "FAILED (id not found / not pending)")
+            if ok and c:
+                try:
+                    from improvements import add as log_suggestion, looks_like_suggestion
+                    txt = c.get("text") or ""
+                    who = c.get("user") or "member"
+                    if looks_like_suggestion(txt):
+                        item = log_suggestion(f"{who} (portal comment)", txt[:500])
+                        print(f"SUGGESTION LOGGED {item['id']} from {who}")
+                except Exception as e:
+                    print("suggestion-log skipped:", e)
+        else:
+            ok = store.deny_comment(cid)
+            print("COMMENT DENIED" if ok else "FAILED (id not found)")
     else:
         print("unknown kind:", kind)
         sys.exit(2)

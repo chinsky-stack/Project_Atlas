@@ -22,6 +22,13 @@ config.local.yaml
 data/access.json
 data/.lastseen.json
 
+# improvement suggestions + inbound monitor state
+data/improvements.json
+data/.alerts_pending.jsonl
+data/inbound_log.jsonl
+data/.seen_mail.json
+data/digests/
+
 # local secrets (NEVER commit)
 config.local.yaml
 

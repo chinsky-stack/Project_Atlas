@@ -19,6 +19,8 @@ from email.header import decode_header
 from email.message import EmailMessage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 SEEN = os.path.join(ROOT, "data", ".seen_mail.json")
 
 PENN = "pennmou@gmail.com"
@@ -91,7 +93,7 @@ def save_seen(seen):
     json.dump(seen, open(SEEN, "w"))
 
 
-def send_reply(to_addr, subject, body, cfg):
+def send_reply(to_addr, subject, html_body, cfg, text_body=None):
     mail = cfg.get("mail", {})
     addr = mail.get("gmail_address") or os.getenv("GMAIL_ADDRESS")
     pw = mail.get("gmail_app_password") or os.getenv("GMAIL_APP_PASSWORD")
@@ -99,7 +101,8 @@ def send_reply(to_addr, subject, body, cfg):
     msg["Subject"] = "Re: " + subject
     msg["From"] = f"Hermes (ATLAS CAPITAL) <{addr}>"
     msg["To"] = to_addr
-    msg.set_content(body)
+    msg.set_content(text_body or "This message is HTML. Please use an HTML-capable mail client.")
+    msg.add_alternative(html_body, subtype="html")
     ctx = ssl.create_default_context()
     with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=ctx) as s:
         s.login(addr, pw)
@@ -107,17 +110,56 @@ def send_reply(to_addr, subject, body, cfg):
     return True
 
 
+def _letter(paras, signoff="— Hermes (ATLAS CAPITAL)"):
+    """Wrap paragraphs in a clean professional HTML letter."""
+    body = "".join(f"<p style='margin:0 0 12px 0'>{p}</p>" for p in paras)
+    return f"""<html><body style="font-family:-apple-system,Segoe UI,Arial;color:#222;max-width:640px;margin:auto;line-height:1.55">
+    {body}
+    <p style='margin:0 0 4px 0'>{signoff}</p>
+    </body></html>"""
+
+
+def penn_letter(question, answer_text):
+    """Professional reply to Penn: acknowledges, gives proposed ideas,
+    marks as subject to Dr. King's approval."""
+    paras = [
+        "Hi Penn,",
+        f"Thanks for writing in. Here are my proposed thoughts on your note "
+        f"(&ldquo;{question[:160]}&rdquo;):",
+        answer_text,
+        "These are <b>proposed ideas, subject to Dr. King's approval</b> &mdash; he reviews "
+        "everything before anything is acted on, and nothing changes in the portal or the "
+        "trading book without his sign-off. I'll follow up once he's weighed in.",
+        "Happy to dig deeper on any of this.",
+    ]
+    return _letter(paras)
+
+
+def thank_you_letter(name, about):
+    paras = [
+        f"Hi {name},",
+        f"Thank you for your involvement with ATLAS CAPITAL &mdash; and especially for the "
+        f"suggestion about {about}. Dr. King and I read every idea that comes in, and we're "
+        f"genuinely glad you're engaging with the project.",
+        "We'll look at what (if anything) to implement and how, and I'll follow up with you "
+        "once there's a decision &mdash; including if we decide not to move forward, so you "
+        "always know the outcome.",
+    ]
+    return _letter(paras), f"Hi {name}, thank you for the suggestion about {about} — we've logged it and Dr. King will review. (ATLAS CAPITAL)"
+
+
 def send_telegram(text):
-    """Best-effort Telegram alert to the admin. Uses the hermes gateway if available."""
-    try:
-        # Prefer the running hermes telegram delivery via a small helper
-        import subprocess
-        # We rely on the scheduler/cron delivering stdout; but for a direct ping we
-        # attempt the hermes CLI if present.
-        # Fallback: print so the cron/agent surfaces it.
-        print("TG_ALERT:" + text)
-    except Exception:
-        print("TG_ALERT:" + text)
+    """Record an IMPORTANT alert to the pending-alerts file. The relay cron
+    delivers only these to Telegram — routine scans stay silent."""
+    import datetime as _dt
+    path = os.path.join(ROOT, "data", ".alerts_pending.jsonl")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps({
+            "ts": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            "text": text,
+        }) + "\n")
+
 
 
 def is_question(text):
@@ -154,7 +196,15 @@ def answer_penn(question: str) -> str:
             "specific — ask away.\n\n— Hermes (ATLAS CAPITAL)")
 
 
+def _audit(entry):
+    path = os.path.join(ROOT, "data", "inbound_log.jsonl")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
 def process(cfg):
+    from src.improvements import add as log_suggestion, looks_like_suggestion
     mail = cfg.get("mail", {})
     user = mail.get("gmail_address") or os.getenv("GMAIL_ADDRESS")
     pw = mail.get("gmail_app_password") or os.getenv("GMAIL_APP_PASSWORD")
@@ -164,7 +214,6 @@ def process(cfg):
     m = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
     m.login(user, pw)
     m.select("INBOX")
-    # only scan the last 3 days (perf + relevance)
     since = (dt.datetime.now() - dt.timedelta(days=3)).strftime("%d-%b-%Y")
     typ, data = m.search(None, "SINCE", since)
     ids = data[0].split()
@@ -183,37 +232,59 @@ def process(cfg):
             if "@" in tok:
                 sender_email = tok.strip("<>()'\"")
         sender_email = sender_email.lower()
+        # real-name guess for thank-you letters
+        name = sender_email.split("@")[0].split(".")[0].title()
         seen_ids.add(mid)
 
-        # Skip own + bulk/noise silently (no alert, just mark seen)
+        # full body (needed for suggestion detection)
+        typ, db = m.fetch(num, "(RFC822)")
+        body = _body(email.message_from_bytes(db[0][1])).strip()
+        is_sugg = looks_like_suggestion(body) or looks_like_suggestion(subj)
+
+        _audit({"ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                "from": sender_email, "subject": subj, "suggestion": is_sugg})
+
+        # Skip bulk/noise silently (still audited above)
         if sender_email in IGNORE_SENDERS or any(s in sender_email for s in IGNORE_SUBSTR):
             continue
 
-        # Penn -> answer autonomously (fetch body only for him)
+        # ---- Penn: always engage, professional letter, thank on suggestion ----
         if PENN in sender_email:
-            typ, db = m.fetch(num, "(RFC822)")
-            body = _body(email.message_from_bytes(db[0][1])).strip()
-            if is_question(body) or is_question(subj):
+            if is_sugg:
+                html, plain = thank_you_letter("Penn", subj or body[:60])
+                send_reply(sender_email, subj, html, cfg, plain)
+                item = log_suggestion("Penn (email)", body[:500])
+                new_actions.append(f"PENN SUGGESTION logged {item['id']} -> thanked")
+                send_telegram(f"💡 New suggestion from Penn [{item['id']}]: {subj[:50]} — thanked him, awaiting your review.")
+            else:
                 ans = answer_penn(body or subj)
-                try:
-                    send_reply(sender_email, subj, ans, cfg)
-                    new_actions.append(f"REPLIED to Penn re: {subj[:50]} | {ans[:80]}...")
-                except Exception as e:
-                    new_actions.append(f"Penn Q but reply FAILED: {e}")
+                html = penn_letter(body or subj, ans)
+                send_reply(sender_email, subj, html, cfg, ans)
+                new_actions.append(f"REPLIED to Penn re: {subj[:50]}")
+                send_telegram(f"✉️ Penn emailed ({'question' if (is_question(body) or is_question(subj)) else 'note'}): {subj[:50]} — Hermes replied (subject to your approval).")
+
+        # ---- Dr. King (you): log suggestions, acknowledge, alert ----
+        elif sender_email in ("itorchinsky@alaska.edu", "ilyatorchinsky@gmail.com"):
+            if is_sugg:
+                item = log_suggestion("Dr. King (email)", body[:500])
+                new_actions.append(f"YOUR SUGGESTION logged {item['id']}")
+                send_telegram(f"💡 You suggested [{item['id']}]: {subj[:60]} — logged for implementation review.")
             else:
-                new_actions.append(f"Penn (no question): {subj[:60]} — noted, no reply sent")
+                new_actions.append(f"NOTE from you: {subj[:60]} — logged")
+                # not important enough to ping; already audited
+
+        # ---- Other person: flag, alert, log suggestions ----
         else:
-            # Non-Penn, non-noise: use judgment, but tell admin before executing anything.
-            # Only alert if it looks actionable (a question in subject or body).
-            typ, db = m.fetch(num, "(RFC822)")
-            body_txt = _body(email.message_from_bytes(db[0][1])).strip()
-            actionable = is_question(subj) or is_question(body_txt)
-            if actionable:
-                new_actions.append(f"OTHER [{sender_email}] {subj[:60]} — flagged for Dr. King")
-                send_telegram(f"📨 Inbound from {sender_email}: {subj[:60]} — I'll wait for your OK before acting.")
+            if is_sugg:
+                item = log_suggestion(f"{sender_email} (email)", body[:500])
+                html, plain = thank_you_letter(name, subj or body[:60])
+                send_reply(sender_email, subj, html, cfg, plain)
+                new_actions.append(f"OTHER SUGGESTION {item['id']} from {sender_email} -> thanked")
+                send_telegram(f"💡 Suggestion from {sender_email} [{item['id']}]: {subj[:50]} — thanked, needs your call.")
             else:
-                # personal but not actionable (e.g. a note) -> log only, no ping
-                new_actions.append(f"NOTE [{sender_email}] {subj[:60]} — logged, no alert")
+                new_actions.append(f"OTHER [{sender_email}] {subj[:60]} — flagged")
+                send_telegram(f"📨 Inbound from {sender_email}: {subj[:60]} — I'll wait for your OK before acting.")
+
     m.logout()
     seen["ids"] = list(seen_ids)[-500:]
     save_seen(seen)

@@ -78,6 +78,20 @@ def build(cfg, since_days=7):
 
 
 def render_html(d):
+    # improvement suggestions tracked
+    try:
+        from src.improvements import all_items
+        items = all_items()
+    except Exception:
+        items = []
+    if items:
+        imp_rows = "".join(
+            f"<tr><td>{esc(i['id'])}</td><td>{esc(i['source'])}</td>"
+            f"<td>{esc(i['text'][:120])}</td><td><b>{esc(i['status'])}</b></td>"
+            f"<td>{esc(i.get('date','')[:10])}</td></tr>" for i in items)
+    else:
+        imp_rows = "<tr><td colspan=5>No suggestions logged yet.</td></tr>"
+
     def fmt_o(o):
         sym = esc(o.symbol)
         side = esc(o.side)
@@ -161,6 +175,12 @@ def render_html(d):
     questions right away. <b>Ask about:</b> your login/password, how the options spreads work, what's paper vs live,
     where to see performance, or anything in this digest. <b>What to expect:</b> Hermes answers questions conversationally —
     it will NOT change your account or place trades from email. For account changes, Dr. King handles those.</p>
+    <hr>
+    <h3>6. Improvement suggestions tracked</h3>
+    <table border=1 cellpadding=6 cellspacing=0 style="border-collapse:collapse;width:100%;font-size:13px">
+      <tr style="background:#0b3d91;color:#fff"><th>ID</th><th>Source</th><th>Suggestion</th><th>Status</th><th>Date</th></tr>
+      {imp_rows}
+    </table>
     <hr>
     <p style="color:#888;font-size:12px">ATLAS CAPITAL · paper-trading research only · not investment advice ·
     generated {d['week_end'].strftime('%Y-%m-%d %H:%M')} UTC</p>
