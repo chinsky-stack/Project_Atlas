@@ -241,26 +241,72 @@ def render_html(d):
 
 
 def main():
+    args = sys.argv[1:]
+    draft_mode = "--send" not in args          # default = draft (no email)
+    if "--since" in args:
+        since_days = int(args[args.index("--since") + 1])
+    else:
+        since_days = 7
+
     cfg = load_cfg()
     mail = cfg.get("mail", {})
-    # creds from gitignored config.local.yaml (preferred); env overrides
     os.environ.setdefault("GMAIL_ADDRESS", mail.get("gmail_address", ""))
     os.environ.setdefault("GMAIL_APP_PASSWORD", mail.get("gmail_app_password", ""))
     to_addr = os.getenv("DIGEST_TO", mail.get("digest_to", "pennmou@gmail.com"))
     cc_addr = os.getenv("DIGEST_CC", mail.get("digest_cc", "ilyatorchinsky@gmail.com"))
     bcc_addr = os.getenv("DIGEST_BCC", "")
-    since_days = int(sys.argv[sys.argv.index("--since") + 1]) if "--since" in sys.argv else 7
+
     d = build(cfg, since_days)
     html = render_html(d)
     subject = f"ATLAS CAPITAL Weekly Digest — {d['week_end'].strftime('%b %d, %Y')} (PAPER)"
-    from bin.mailer import send_email
-    send_email(subject, html, to_addr, cc_addr=cc_addr, bcc_addr=bcc_addr)
-    # also write a local copy for the record
+    week_key = d["week_end"].strftime("%Y-%m-%d")
+
     os.makedirs("data/digests", exist_ok=True)
-    fn = f"data/digests/{d['week_end'].strftime('%Y-%m-%d')}.html"
+    fn = f"data/digests/{week_key}.html"
     open(fn, "w").write(html)
-    print("Saved local copy:", fn)
+
+    if draft_mode:
+        # Save a draft marker so --send knows what to mail.
+        meta = {
+            "week_key": week_key,
+            "html_file": fn,
+            "subject": subject,
+            "to": to_addr,
+            "cc": cc_addr,
+            "bcc": bcc_addr,
+            "built_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        }
+        open("data/digests/draft_meta.json", "w").write(json.dumps(meta, indent=2))
+        # Plaintext preview for Telegram
+        try:
+            from src.improvements import all_items as _all_sugg
+            _nsugg = len(_all_sugg())
+        except Exception:
+            _nsugg = 0
+        prev = (
+            f"📬 DIGEST DRAFT READY — {week_key} (NOT yet sent)\n"
+            f"To: {to_addr} (BCC) · CC: {cc_addr}\n"
+            f"Engine orders: {len(d['engine_orders'])} · Manual: {len(d['other_orders'])} · "
+            f"Equity: ${d['equity']:,.0f}\n"
+            f"Suggestions tracked: {_nsugg}\n"
+            f"Local copy: {fn}\n"
+            f"Reply 'send digest' to release it to Penn."
+        )
+        print(prev)
+        return
+
+    # --send mode: email the latest draft
+    meta_path = "data/digests/draft_meta.json"
+    if not os.path.exists(meta_path):
+        print("No draft to send. Run with --draft first.")
+        return
+    meta = json.loads(open(meta_path).read())
+    html = open(meta["html_file"]).read()
+    from bin.mailer import send_email
+    send_email(meta["subject"], html, meta["to"], cc_addr=meta["cc"], bcc_addr=meta["bcc"])
+    print(f"Digest SENT to {meta['to']} (BCC) + CC {meta['cc']}")
 
 
 if __name__ == "__main__":
     main()
+
