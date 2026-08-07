@@ -373,14 +373,16 @@ with tab2:
     pos = broker.get_positions()
     if pos:
         df = pd.DataFrame(pos)
-        cols = ["ticker", "direction", "qty", "entry", "current", "stop", "unrealized"]
-        if "conviction" in df.columns:
-            cols.append("conviction")
-        df = df[[c for c in cols if c in df.columns]]
-        df.columns = ["Ticker", "Dir", "Qty", "Entry", "Mark", "Stop", "Unreal. P&L"] + (["Conv"] if "Conv" in df.columns else [])
+        pretty = {
+            "ticker": "Ticker", "direction": "Dir", "qty": "Qty", "entry": "Entry",
+            "current": "Mark", "stop": "Stop", "unrealized": "Unreal. P&L",
+            "conviction": "Conv",
+        }
+        df = df[[c for c in pretty if c in df.columns]]
+        df = df.rename(columns=pretty)
         st.dataframe(df, use_container_width=True)
         # manual close buttons
-        close_t = st.selectbox("Close a position", [""] + [p["ticker"] for p in pos])
+        close_t = st.selectbox("Close a position", ["" ] + [p["ticker"] for p in pos])
         if close_t and st.button("Close selected"):
             res = broker.close_position(close_t)
             st.info(res.message)

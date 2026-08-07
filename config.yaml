@@ -59,10 +59,10 @@ access:
 # Runs PAPER only. Every action passes the Risk Office + kill-switch.
 # These are "the limits we set" — tune freely; they are enforced in code.
 auto_trader:
-  enabled: false                 # must be flipped true (and started from the dashboard) to run
+  enabled: true                  # engine runs autonomously in paper (Dr. King authorized 2026-08-07)
   auto_start: true               # when true, engine launches itself at portal start (paper-only, autonomous)
   paper_only: true               # never trades live; live_confirmed must stay false
-  book_reference: 200000.0       # system's tradable book (raise paper equity in Alpaca dashboard to match)
+  book_reference: 100000.0       # engine's SHARE of the account = $100k (Dr. King's half). Your other $100k + margin is reserved for your manual trades; engine never touches it.
   # ---- Aggressive envelope (capped) ----
   max_capital_at_risk_pct: 40.0  # max % of equity exposed at once (aggressive but bounded)
   max_open_positions: 8
